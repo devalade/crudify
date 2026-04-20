@@ -5,6 +5,9 @@ namespace {{ namespace }};
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use {{ modelNamespace }}\{{ model }};
+use {{ requestNamespace }}\{{ storeRequest }};
+use {{ requestNamespace }}\{{ updateRequest }};
 
 class {{ class }} extends Controller
 {

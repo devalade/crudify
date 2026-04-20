@@ -25,6 +25,8 @@ class ControllerGenerator extends BaseGenerator
         $stub = str_replace('{{ class }}', $class, $stub);
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
+        $stub = str_replace('{{ modelNamespace }}', 'App\\Models', $stub);
+        $stub = str_replace('{{ requestNamespace }}', 'App\\Http\\Requests', $stub);
         $stub = str_replace('{{ storeRequest }}', $storeRequest, $stub);
         $stub = str_replace('{{ updateRequest }}', $updateRequest, $stub);
 

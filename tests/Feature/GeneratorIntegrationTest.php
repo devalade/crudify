@@ -131,7 +131,7 @@ it('generates model with soft deletes when enabled', function () {
 
     $content = file_get_contents($paths[0]);
     expect($content)->toContain('use Illuminate\Database\Eloquent\SoftDeletes;');
-    expect($content)->toContain('use SoftDeletes;');
+    expect($content)->toContain('use HasFactory, SoftDeletes;');
 });
 
 it('generates model without soft deletes when disabled', function () {
@@ -142,6 +142,7 @@ it('generates model without soft deletes when disabled', function () {
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
+    expect($content)->toContain('use HasFactory;');
     expect($content)->not->toContain('SoftDeletes');
     expect($content)->not->toContain('use ;');
 });

@@ -22,8 +22,8 @@ class ModelGenerator extends BaseGenerator
             ->map(fn ($cast, $field) => "'{$field}' => '{$cast}'")
             ->implode(",\n        ");
 
-        $traits = [];
-        $uses = [];
+        $traits = ['HasFactory'];
+        $uses = ['use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;'];
 
         if ($this->softDeletes) {
             $uses[] = 'use Illuminate\\Database\\Eloquent\\SoftDeletes;';
@@ -31,7 +31,7 @@ class ModelGenerator extends BaseGenerator
         }
 
         $usesStr = implode("\n", $uses);
-        $traitsStr = empty($traits) ? '' : 'use '.implode(', ', $traits).';';
+        $traitsStr = 'use '.implode(', ', $traits).';';
 
         $stub = $this->getStub('model');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);

@@ -4,6 +4,7 @@ namespace {{ namespace }};
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use {{ modelNamespace }}\{{ model }};
+{{ uses }}
 
 class {{ class }} extends Factory
 {

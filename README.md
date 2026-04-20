@@ -1,18 +1,10 @@
 # Crudify
 
-Generate full CRUD with Livewire v4 components in Laravel.
+Generate full CRUD scaffolding for Laravel with a single command. Built for **Livewire v4** and **Laravel 11/12**.
 
-## Features
+Crudify creates models, migrations, controllers, form requests, policies, Livewire components + views, routes, factories, and seeders — with support for relationships, soft deletes, and searchable fields.
 
-- ✅ Model with fillable and casts
-- ✅ Database migration with proper types
-- ✅ Resource controller (7 methods)
-- ✅ Form Request validation (Store/Update)
-- ✅ Policy authorization
-- ✅ Livewire v4 single-file components (index, create, edit, show)
-- ✅ Automatic route registration
-- ✅ Search, sorting, and pagination on index
-- ✅ Customizable stubs
+---
 
 ## Installation
 
@@ -20,177 +12,225 @@ Generate full CRUD with Livewire v4 components in Laravel.
 composer require crudify/crudify
 ```
 
-## Usage
+---
 
-### CLI Mode
+## Quick Start
+
+### CLI
 
 ```bash
-php artisan crudify:generate Post --fields="title:string,body:text,is_published:boolean,published_at:datetime"
+php artisan crudify:generate Post \
+  --fields="title:string,body:text,is_published:boolean,published_at:datetime" \
+  --soft-delete
 ```
 
-### YAML Mode
+### YAML
 
-Create a YAML file (e.g., `post.yaml`):
+```bash
+php artisan crudify:generate --file=post.yaml
+```
+
+**`post.yaml`**
 
 ```yaml
 model: Post
-
 fields:
-  title:
-    type: string
-    nullable: false
-    unique: true
-  body:
-    type: text
-    nullable: false
-  is_published:
-    type: boolean
-    default: false
-
-searchable:
-  - title
-  - body
+  title: string
+  slug: string:unique
+  body: text
+  is_published: boolean:default:false
+  published_at: datetime:nullable
+  category_id: foreign:categories
+options:
+  soft_deletes: true
+relationships:
+  category:
+    type: belongsTo
+    model: Category
+  tags:
+    type: belongsToMany
+    model: Tag
 ```
 
 Then run:
 
 ```bash
-php artisan crudify:generate --file=post.yaml
+php artisan migrate
 ```
 
-### Field Types
+Visit `/{resource}` (e.g. `/posts`).
 
-Supported types: `string`, `text`, `integer`, `bigint`, `float`, `boolean`, `date`, `datetime`, `json`, `uuid`, `foreign`
+---
 
-### Field Modifiers
+## Field Syntax
 
-- `nullable` - Column allows NULL
-- `unique` - Add unique constraint
-- `index` - Add index
-- `default:value` - Set default value
-- `foreign:table` - Foreign key to specified table
+### CLI Format
 
-### CLI Examples
+```
+name:type:modifier1:modifier2
+```
+
+**Examples:**
+
+| Field Definition | Result |
+|---|---|
+| `title:string` | `string` column |
+| `body:text` | `text` column |
+| `email:string:unique` | `string` with unique index |
+| `published_at:datetime:nullable` | nullable `datetime` |
+| `status:string:default:draft` | `string` with default value |
+| `user_id:foreign:users` | `foreignId` constrained to `users` table |
+| `views:integer:index` | `integer` with index |
+
+### Available Types
+
+`string`, `text`, `integer`, `bigint`, `float`, `double`, `decimal`, `boolean`, `date`, `datetime`, `timestamp`, `time`, `json`, `uuid`, `email`, `foreign`
+
+### Modifiers
+
+- `nullable` — allows NULL values
+- `unique` — adds unique constraint
+- `index` — adds database index
+- `default:value` — sets default value
+- `foreign:table` — creates foreign key constraint
+
+---
+
+## Relationships
+
+Define Eloquent relationships in your model with a simple syntax.
+
+### CLI
 
 ```bash
-# Simple blog post
-php artisan crudify:generate Post --fields="title:string,body:text,is_published:boolean"
-
-# Product with foreign key
-php artisan crudify:generate Product --fields="name:string,price:float,description:text,category_id:foreign:categories"
-
-# User profile with nullable fields
-php artisan crudify:generate Profile --fields="bio:text,avatar:string:nullable,website:string:nullable"
-
-# Generate only model and migration
-php artisan crudify:generate Post --fields="title:string" --only=model,migration
-
-# Skip policy generation
-php artisan crudify:generate Post --fields="title:string" --skip=policy
+php artisan crudify:generate Post \
+  --fields="title:string,user_id:foreign:users" \
+  --relationships="user:belongsTo:User,comments:hasMany:Comment"
 ```
 
-### YAML Examples
+### YAML
 
-```bash
-# Using YAML file
-php artisan crudify:generate --file=post.yaml
-
-# YAML with only option
-php artisan crudify:generate --file=post.yaml --only=model,migration
+```yaml
+relationships:
+  author:
+    type: belongsTo
+    model: User
+  comments:
+    type: hasMany
+    model: Comment
+  profile:
+    type: hasOne
+    model: Profile
+  tags:
+    type: belongsToMany
+    model: Tag
 ```
 
-See `YAML_EXAMPLE.md` for complete YAML syntax reference.
+### Supported Types
+
+- `belongsTo`
+- `hasMany`
+- `hasOne`
+- `belongsToMany`
+
+Relationships are automatically:
+- Added to the model with proper return types
+- Eager-loaded in controllers and Livewire index components
+- Validated with `Rule::exists()` for foreign key fields in form requests
+
+---
 
 ## Generated Files
 
-For `Post` model, generates:
+For a model named `Post`, Crudify generates:
 
+| File | Description |
+|---|---|
+| `app/Models/Post.php` | Eloquent model with `$fillable`, `$casts`, traits, and relationships |
+| `database/factories/PostFactory.php` | Factory with Faker methods mapped to field types |
+| `database/seeders/PostSeeder.php` | Seeder calling `Post::factory()->count(10)->create()` |
+| `database/migrations/xxxx_create_posts_table.php` | Migration with all columns and indexes |
+| `app/Http/Controllers/PostsController.php` | Resource controller with CRUD actions |
+| `app/Http/Requests/StorePostRequest.php` | Form request with validation rules |
+| `app/Http/Requests/UpdatePostRequest.php` | Form request with unique rule ignoring current model |
+| `app/Policies/PostPolicy.php` | Authorization policy |
+| `app/Livewire/Pages/Posts/Index.php` | Livewire component with search, sort, pagination |
+| `app/Livewire/Pages/Posts/Create.php` | Livewire create component |
+| `app/Livewire/Pages/Posts/Edit.php` | Livewire edit component |
+| `app/Livewire/Pages/Posts/Show.php` | Livewire show component |
+| `resources/views/livewire/pages/posts/*.blade.php` | Tailwind-styled views |
+| `routes/web.php` | Livewire v4 routes appended with collision detection |
+
+---
+
+## Command Options
+
+```bash
+php artisan crudify:generate {model}
+  --fields=          # Comma-separated field definitions
+  --file=            # Path to YAML file (overrides --fields)
+  --relationships=   # Comma-separated relationships (name:type:Model)
+  --only=            # Generate only specific types (comma-separated)
+  --skip=            # Skip specific types (comma-separated)
+  --soft-delete      # Add soft deletes
+  --searchable=      # Comma-separated searchable fields
+  --force            # Overwrite existing files
+  --dry-run          # Preview without writing files
 ```
-app/
-├── Models/
-│   └── Post.php
-├── Http/
-│   ├── Controllers/
-│   │   └── PostsController.php
-│   └── Requests/
-│       ├── StorePostRequest.php
-│       └── UpdatePostRequest.php
-├── Policies/
-│   └── PostPolicy.php
-└── Livewire/
-    └── Pages/
-        └── posts/
-            ├── ⚡index.blade.php
-            ├── ⚡create.blade.php
-            ├── ⚡edit.blade.php
-            └── ⚡show.blade.php
 
-database/migrations/
-└── xxxx_xx_xx_xxxxxx_create_posts_table.php
+### Examples
 
-resources/views/livewire/pages/posts/
-├── index.blade.php
-├── create.blade.php
-├── edit.blade.php
-└── show.blade.php
+**Generate only model and migration:**
 
-routes/web.php (auto-appended)
+```bash
+php artisan crudify:generate Post --fields="title:string" --only=model,migration
 ```
 
-## Livewire Components
+**Skip controllers (Livewire-only):**
 
-### Index Component
-- Search functionality
-- Column sorting (click headers)
-- Pagination (10, 25, 50, 100 per page)
-- Responsive table layout
+```bash
+php artisan crudify:generate Post --fields="title:string" --skip=controller
+```
 
-### Create/Edit Components
-- Auto-generated form fields
-- Validation with error display
-- Redirect on success
+**Preview changes:**
 
-### Show Component
-- Display all fields
-- Edit button
-- Delete with confirmation
+```bash
+php artisan crudify:generate Post --fields="title:string" --dry-run
+```
+
+---
 
 ## Customizing Stubs
 
-Publish stubs to customize the generated code:
+Publish stubs to your application:
 
 ```bash
 php artisan crudify:stubs
 ```
 
-This creates `stubs/crudify/` with all stub files. Modifications here override package defaults.
+Then edit files in `stubs/crudify/`. The package will use your custom stubs on the next generation.
+
+---
 
 ## Requirements
 
 - PHP ^8.2
-- Laravel ^11.0|^12.0
+- Laravel ^11.0 or ^12.0
 - Livewire ^4.0
-- Symfony YAML ^6.0|^7.0 (included)
 
-## Layout Requirement
+---
 
-Ensure you have a layout file at `resources/views/components/layouts/app.blade.php`:
+## Testing
 
-```blade
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? config('app.name') }}</title>
-    @livewireStyles
-</head>
-<body>
-    {{ $slot }}
-    @livewireScripts
-</body>
-</html>
+```bash
+composer test          # Run all tests
+composer test:unit     # Run unit tests only
+composer test:feature  # Run feature tests only
+composer analyse       # Run static analysis
+composer format        # Fix code style
 ```
+
+---
 
 ## License
 

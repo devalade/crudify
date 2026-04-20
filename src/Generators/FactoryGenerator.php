@@ -16,6 +16,7 @@ class FactoryGenerator extends BaseGenerator
 
         $fields = $this->fieldParser->getFields();
         $fieldDefs = [];
+        $uses = [];
 
         foreach ($fields as $field) {
             if ($field['name'] === 'id') {
@@ -24,9 +25,22 @@ class FactoryGenerator extends BaseGenerator
 
             $faker = $this->getFakerMethod($field);
             $fieldDefs[] = "'{$field['name']}' => {$faker},";
+
+            if ($field['type'] === 'foreign') {
+                $foreignTable = is_string($field['foreign_table'] ?? null) ? $field['foreign_table'] : null;
+
+                if ($foreignTable !== null) {
+                    $modelClass = Str::studly(Str::singular($foreignTable));
+
+                    if ($modelClass !== $modelBase) {
+                        $uses[] = "use App\\Models\\{$modelClass};";
+                    }
+                }
+            }
         }
 
         $fieldsStr = implode("\n            ", $fieldDefs);
+        $usesStr = implode("\n", array_unique($uses));
 
         $stub = $this->getStub('factory');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -34,6 +48,7 @@ class FactoryGenerator extends BaseGenerator
         $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ fields }}', $fieldsStr, $stub);
+        $stub = str_replace('{{ uses }}', $usesStr, $stub);
 
         $this->createFile($path, $stub);
 
