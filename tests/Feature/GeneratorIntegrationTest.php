@@ -1,31 +1,29 @@
 <?php
 
-use Crudify\Generators\{
-    ControllerGenerator,
-    FormRequestGenerator,
-    LivewireComponentGenerator,
-    LivewireViewGenerator,
-    MigrationGenerator,
-    ModelGenerator,
-    RouteGenerator,
-};
 use Crudify\FieldParser;
+use Crudify\Generators\ControllerGenerator;
+use Crudify\Generators\FormRequestGenerator;
+use Crudify\Generators\LivewireComponentGenerator;
+use Crudify\Generators\LivewireViewGenerator;
+use Crudify\Generators\MigrationGenerator;
+use Crudify\Generators\ModelGenerator;
+use Crudify\Generators\RouteGenerator;
 use Illuminate\Filesystem\Filesystem;
 
 beforeEach(function () {
-    $this->tmpDir = sys_get_temp_dir() . '/crudify-tests-' . uniqid();
+    $this->tmpDir = sys_get_temp_dir().'/crudify-tests-'.uniqid();
     mkdir($this->tmpDir, 0777, true);
 
     // Create mock app structure
-    mkdir($this->tmpDir . '/app/Models', 0755, true);
-    mkdir($this->tmpDir . '/app/Http/Controllers', 0755, true);
-    mkdir($this->tmpDir . '/app/Http/Requests', 0755, true);
-    mkdir($this->tmpDir . '/app/Policies', 0755, true);
-    mkdir($this->tmpDir . '/app/Livewire/Pages', 0755, true);
-    mkdir($this->tmpDir . '/resources/views/livewire/pages', 0755, true);
-    mkdir($this->tmpDir . '/database/migrations', 0755, true);
-    mkdir($this->tmpDir . '/routes', 0755, true);
-    file_put_contents($this->tmpDir . '/routes/web.php', "<?php\n");
+    mkdir($this->tmpDir.'/app/Models', 0755, true);
+    mkdir($this->tmpDir.'/app/Http/Controllers', 0755, true);
+    mkdir($this->tmpDir.'/app/Http/Requests', 0755, true);
+    mkdir($this->tmpDir.'/app/Policies', 0755, true);
+    mkdir($this->tmpDir.'/app/Livewire/Pages', 0755, true);
+    mkdir($this->tmpDir.'/resources/views/livewire/pages', 0755, true);
+    mkdir($this->tmpDir.'/database/migrations', 0755, true);
+    mkdir($this->tmpDir.'/routes', 0755, true);
+    file_put_contents($this->tmpDir.'/routes/web.php', "<?php\n");
 
     $this->swapAppPaths($this->tmpDir);
 });
@@ -44,10 +42,10 @@ afterEach(function () {
 });
 
 it('generates a valid controller', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string,body:text');
 
-    $generator = new ControllerGenerator(new Filesystem(), $parser);
+    $generator = new ControllerGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     expect($paths)->toHaveCount(1);
@@ -65,10 +63,10 @@ it('generates a valid controller', function () {
 });
 
 it('generates valid form requests with correct unique rules', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string:unique,email:string:unique:nullable');
 
-    $generator = new FormRequestGenerator(new Filesystem(), $parser);
+    $generator = new FormRequestGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     expect($paths)->toHaveCount(2);
@@ -82,10 +80,10 @@ it('generates valid form requests with correct unique rules', function () {
 });
 
 it('generates livewire components in correct location', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string,body:text');
 
-    $generator = new LivewireComponentGenerator(new Filesystem(), $parser);
+    $generator = new LivewireComponentGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     expect($paths)->toHaveCount(4);
@@ -98,14 +96,14 @@ it('generates livewire components in correct location', function () {
     $indexContent = file_get_contents($paths[0]);
     expect($indexContent)->toContain('namespace App\Livewire\Pages\Posts');
     expect($indexContent)->toContain('class Index extends Component');
-    expect($indexContent)->toContain("use WithPagination;");
+    expect($indexContent)->toContain('use WithPagination;');
 });
 
 it('generates livewire views without calling route at generation time', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string,body:text');
 
-    $generator = new LivewireViewGenerator(new Filesystem(), $parser);
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     expect($paths)->toHaveCount(4);
@@ -120,10 +118,10 @@ it('generates livewire views without calling route at generation time', function
 });
 
 it('generates model with soft deletes when enabled', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string');
 
-    $generator = new ModelGenerator(new Filesystem(), $parser, ['softDeletes' => true]);
+    $generator = new ModelGenerator(new Filesystem, $parser, ['softDeletes' => true]);
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
@@ -132,10 +130,10 @@ it('generates model with soft deletes when enabled', function () {
 });
 
 it('generates model without soft deletes when disabled', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string');
 
-    $generator = new ModelGenerator(new Filesystem(), $parser);
+    $generator = new ModelGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
@@ -144,10 +142,10 @@ it('generates model without soft deletes when disabled', function () {
 });
 
 it('generates migration with soft deletes when enabled', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string');
 
-    $generator = new MigrationGenerator(new Filesystem(), $parser, ['softDeletes' => true]);
+    $generator = new MigrationGenerator(new Filesystem, $parser, ['softDeletes' => true]);
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
@@ -155,10 +153,10 @@ it('generates migration with soft deletes when enabled', function () {
 });
 
 it('generates livewire v4 compatible routes', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string');
 
-    $generator = new RouteGenerator(new Filesystem(), $parser);
+    $generator = new RouteGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
@@ -168,10 +166,10 @@ it('generates livewire v4 compatible routes', function () {
 });
 
 it('does not duplicate routes on subsequent runs', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string');
 
-    $generator = new RouteGenerator(new Filesystem(), $parser);
+    $generator = new RouteGenerator(new Filesystem, $parser);
     $generator->generate('Post');
     $generator->generate('Post');
 

@@ -6,18 +6,19 @@ use Illuminate\Support\Str;
 
 class ControllerGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $namespace = 'App\\Http\\Controllers';
         $modelBase = class_basename($model);
-        $class = Str::plural($modelBase) . 'Controller';
+        $class = Str::plural($modelBase).'Controller';
         $path = $this->getPath($namespace, $class);
 
         $modelVar = $this->camelCase($modelBase);
         $models = $this->pluralize($modelVar);
         $resource = $this->kebabCase(Str::plural($modelBase));
-        $storeRequest = 'Store' . $modelBase . 'Request';
-        $updateRequest = 'Update' . $modelBase . 'Request';
+        $storeRequest = 'Store'.$modelBase.'Request';
+        $updateRequest = 'Update'.$modelBase.'Request';
 
         $stub = $this->getStub('controller');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -90,6 +91,7 @@ PHP;
 PHP;
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['controller'];

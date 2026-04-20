@@ -4,6 +4,7 @@ namespace Crudify;
 
 class FieldParser
 {
+    /** @var array<int, array<string, mixed>> */
     protected array $fields = [];
 
     public function parse(string $fieldsString): self
@@ -68,16 +69,19 @@ class FieldParser
         return $this;
     }
 
+    /** @return array<int, array<string, mixed>> */
     public function getFields(): array
     {
         return $this->fields;
     }
 
+    /** @return array<int, string> */
     public function getFillable(): array
     {
         return array_column($this->fields, 'name');
     }
 
+    /** @return array<string, string> */
     public function getCasts(): array
     {
         $casts = [];

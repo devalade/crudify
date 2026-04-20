@@ -6,11 +6,12 @@ use Symfony\Component\Yaml\Yaml;
 
 class YamlParser
 {
+    /** @var array<string, mixed> */
     protected array $data = [];
 
     public function parse(string $yamlPath): self
     {
-        if (!file_exists($yamlPath)) {
+        if (! file_exists($yamlPath)) {
             throw new \Exception("YAML file not found: {$yamlPath}");
         }
 
@@ -31,8 +32,10 @@ class YamlParser
         return $this->data['model'] ?? null;
     }
 
+    /** @return array<int, array<string, mixed>> */
     public function getFields(): array
     {
+        /** @var array<string, mixed> $fields */
         $fields = $this->data['fields'] ?? [];
         $parsed = [];
 
@@ -41,6 +44,7 @@ class YamlParser
                 $config = ['type' => $config];
             }
 
+            /** @var array<string, mixed> $config */
             $parsed[] = [
                 'name' => $name,
                 'type' => $config['type'] ?? 'string',
@@ -55,11 +59,13 @@ class YamlParser
         return $parsed;
     }
 
+    /** @return array<int, string> */
     public function getSearchable(): array
     {
         return $this->data['searchable'] ?? [];
     }
 
+    /** @return array<string, mixed> */
     public function getOptions(): array
     {
         return $this->data['options'] ?? [];

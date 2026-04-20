@@ -3,7 +3,6 @@
 namespace Crudify\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Filesystem\Filesystem;
 
 class CrudStubsCommand extends Command
 {

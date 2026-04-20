@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 
 class RouteGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $modelBase = class_basename($model);
@@ -19,7 +20,12 @@ class RouteGenerator extends BaseGenerator
         $stub = str_replace('{{ livewireNamespace }}', $livewireNamespace, $stub);
 
         $routePath = base_path('routes/web.php');
-        $existingContent = file_exists($routePath) ? file_get_contents($routePath) : '';
+        $existingContent = '';
+
+        if (file_exists($routePath)) {
+            $content = file_get_contents($routePath);
+            $existingContent = $content !== false ? $content : '';
+        }
 
         $marker = "// CRUDify Routes: {$resource}";
 
@@ -27,13 +33,14 @@ class RouteGenerator extends BaseGenerator
             return [$routePath];
         }
 
-        $output = "\n{$marker}\n" . trim($stub) . "\n// End CRUDify Routes: {$resource}\n";
+        $output = "\n{$marker}\n".trim($stub)."\n// End CRUDify Routes: {$resource}\n";
 
         file_put_contents($routePath, $output, FILE_APPEND);
 
         return [$routePath];
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['route'];

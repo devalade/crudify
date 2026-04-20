@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 
 class MigrationGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $table = Str::plural(Str::snake($model));
@@ -69,6 +70,7 @@ class MigrationGenerator extends BaseGenerator
         return [$path];
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['migration'];

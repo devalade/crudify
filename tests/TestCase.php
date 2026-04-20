@@ -2,11 +2,16 @@
 
 namespace Crudify\Tests;
 
-use Orchestra\Testbench\TestCase as Orchestra;
 use Crudify\CrudifyServiceProvider;
+use Illuminate\Foundation\Application;
+use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra
 {
+    /**
+     * @param  Application  $app
+     * @return array<int, string>
+     */
     protected function getPackageProviders($app): array
     {
         return [
@@ -19,7 +24,7 @@ abstract class TestCase extends Orchestra
         $app = $this->app;
 
         $app->setBasePath($basePath);
-        $app->useAppPath($basePath . '/app');
-        $app->useDatabasePath($basePath . '/database');
+        $app->useAppPath($basePath.'/app');
+        $app->useDatabasePath($basePath.'/database');
     }
 }

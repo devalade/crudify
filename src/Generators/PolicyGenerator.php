@@ -2,14 +2,13 @@
 
 namespace Crudify\Generators;
 
-use Illuminate\Support\Str;
-
 class PolicyGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $namespace = 'App\\Policies';
-        $class = class_basename($model) . 'Policy';
+        $class = class_basename($model).'Policy';
         $path = $this->getPath($namespace, $class);
 
         $modelBase = class_basename($model);
@@ -51,6 +50,7 @@ PHP;
         return [$path];
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['policy'];

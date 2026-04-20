@@ -1,11 +1,12 @@
 <?php
 
-use Crudify\Generators\BaseGenerator;
 use Crudify\FieldParser;
+use Crudify\Generators\BaseGenerator;
 use Illuminate\Filesystem\Filesystem;
 
 it('uses laravel str helpers for pluralization', function () {
-    $generator = new class(new Filesystem(), new FieldParser()) extends BaseGenerator {
+    $generator = new class(new Filesystem, new FieldParser) extends BaseGenerator
+    {
         public function generate(string $model): array
         {
             return [];
@@ -28,7 +29,8 @@ it('uses laravel str helpers for pluralization', function () {
 });
 
 it('throws when stub is missing', function () {
-    $generator = new class(new Filesystem(), new FieldParser()) extends BaseGenerator {
+    $generator = new class(new Filesystem, new FieldParser) extends BaseGenerator
+    {
         public function generate(string $model): array
         {
             return [];
@@ -45,14 +47,16 @@ it('throws when stub is missing', function () {
         }
     };
 
-    expect(fn() => $generator->testGetStub('nonexistent'))->toThrow(\RuntimeException::class);
+    expect(fn () => $generator->testGetStub('nonexistent'))->toThrow(RuntimeException::class);
 });
 
 it('respects dry run option', function () {
-    $generator = new class(new Filesystem(), new FieldParser(), ['dryRun' => true]) extends BaseGenerator {
+    $generator = new class(new Filesystem, new FieldParser, ['dryRun' => true]) extends BaseGenerator
+    {
         public function generate(string $model): array
         {
             $this->createFile('/tmp/crudify-test-dry-run.txt', 'test');
+
             return [];
         }
 
@@ -68,10 +72,11 @@ it('respects dry run option', function () {
 });
 
 it('throws when file exists without force', function () {
-    $tmpFile = sys_get_temp_dir() . '/crudify-test-force.txt';
+    $tmpFile = sys_get_temp_dir().'/crudify-test-force.txt';
     file_put_contents($tmpFile, 'existing');
 
-    $generator = new class(new Filesystem(), new FieldParser()) extends BaseGenerator {
+    $generator = new class(new Filesystem, new FieldParser) extends BaseGenerator
+    {
         private string $path;
 
         public function setPath(string $path): void
@@ -82,6 +87,7 @@ it('throws when file exists without force', function () {
         public function generate(string $model): array
         {
             $this->createFile($this->path, 'new content');
+
             return [];
         }
 
@@ -93,7 +99,7 @@ it('throws when file exists without force', function () {
 
     $generator->setPath($tmpFile);
 
-    expect(fn() => $generator->generate('Post'))->toThrow(\RuntimeException::class, 'Use --force to overwrite');
+    expect(fn () => $generator->generate('Post'))->toThrow(RuntimeException::class, 'Use --force to overwrite');
 
     unlink($tmpFile);
 });

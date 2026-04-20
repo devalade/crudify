@@ -2,18 +2,25 @@
 
 namespace Crudify\Generators;
 
+use Crudify\FieldParser;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
-use Crudify\FieldParser;
 
 abstract class BaseGenerator implements Generator
 {
     protected Filesystem $files;
+
     protected FieldParser $fieldParser;
+
     protected bool $force = false;
+
     protected bool $dryRun = false;
+
     protected bool $softDeletes = false;
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function __construct(Filesystem $files, FieldParser $fieldParser, array $options = [])
     {
         $this->files = $files;
@@ -34,21 +41,31 @@ abstract class BaseGenerator implements Generator
         }
 
         if ($customPath && file_exists($customPath)) {
-            return file_get_contents($customPath);
+            $content = file_get_contents($customPath);
+            if ($content === false) {
+                throw new \RuntimeException("Unable to read stub: {$customPath}");
+            }
+
+            return $content;
         }
 
-        $packagePath = __DIR__ . "/../../stubs/{$name}.stub";
+        $packagePath = __DIR__."/../../stubs/{$name}.stub";
 
-        if (!file_exists($packagePath)) {
+        if (! file_exists($packagePath)) {
             throw new \RuntimeException("Stub not found: {$name} (looked at {$packagePath})");
         }
 
-        return file_get_contents($packagePath);
+        $content = file_get_contents($packagePath);
+        if ($content === false) {
+            throw new \RuntimeException("Unable to read stub: {$packagePath}");
+        }
+
+        return $content;
     }
 
     protected function getPath(string $namespace, string $class): string
     {
-        return base_path(str_replace('\\', '/', $namespace) . '/' . $class . '.php');
+        return base_path(str_replace('\\', '/', $namespace).'/'.$class.'.php');
     }
 
     protected function createFile(string $path, string $content): void
@@ -57,13 +74,13 @@ abstract class BaseGenerator implements Generator
             return;
         }
 
-        if (file_exists($path) && !$this->force) {
+        if (file_exists($path) && ! $this->force) {
             throw new \RuntimeException("File already exists: {$path}. Use --force to overwrite.");
         }
 
         $directory = dirname($path);
 
-        if (!$this->files->exists($directory)) {
+        if (! $this->files->exists($directory)) {
             $this->files->makeDirectory($directory, 0755, true);
         }
 

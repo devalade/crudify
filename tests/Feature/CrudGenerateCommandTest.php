@@ -1,20 +1,18 @@
 <?php
 
-use Illuminate\Filesystem\Filesystem;
-
 beforeEach(function () {
-    $this->tmpDir = sys_get_temp_dir() . '/crudify-cmd-tests-' . uniqid();
+    $this->tmpDir = sys_get_temp_dir().'/crudify-cmd-tests-'.uniqid();
     mkdir($this->tmpDir, 0777, true);
 
-    mkdir($this->tmpDir . '/app/Models', 0755, true);
-    mkdir($this->tmpDir . '/app/Http/Controllers', 0755, true);
-    mkdir($this->tmpDir . '/app/Http/Requests', 0755, true);
-    mkdir($this->tmpDir . '/app/Policies', 0755, true);
-    mkdir($this->tmpDir . '/app/Livewire/Pages', 0755, true);
-    mkdir($this->tmpDir . '/resources/views/livewire/pages', 0755, true);
-    mkdir($this->tmpDir . '/database/migrations', 0755, true);
-    mkdir($this->tmpDir . '/routes', 0755, true);
-    file_put_contents($this->tmpDir . '/routes/web.php', "<?php\n");
+    mkdir($this->tmpDir.'/app/Models', 0755, true);
+    mkdir($this->tmpDir.'/app/Http/Controllers', 0755, true);
+    mkdir($this->tmpDir.'/app/Http/Requests', 0755, true);
+    mkdir($this->tmpDir.'/app/Policies', 0755, true);
+    mkdir($this->tmpDir.'/app/Livewire/Pages', 0755, true);
+    mkdir($this->tmpDir.'/resources/views/livewire/pages', 0755, true);
+    mkdir($this->tmpDir.'/database/migrations', 0755, true);
+    mkdir($this->tmpDir.'/routes', 0755, true);
+    file_put_contents($this->tmpDir.'/routes/web.php', "<?php\n");
 
     $this->swapAppPaths($this->tmpDir);
 });
@@ -120,7 +118,7 @@ it('respects --soft-delete option', function () {
 });
 
 it('handles yaml file input', function () {
-    $yaml = <<<YAML
+    $yaml = <<<'YAML'
 model: Article
 fields:
   title: string
@@ -129,7 +127,7 @@ options:
   soft_deletes: true
 YAML;
 
-    $yamlPath = $this->tmpDir . '/test.yaml';
+    $yamlPath = $this->tmpDir.'/test.yaml';
     file_put_contents($yamlPath, $yaml);
 
     $this->artisan('crudify:generate', ['--file' => $yamlPath])

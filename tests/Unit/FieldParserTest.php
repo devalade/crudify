@@ -3,7 +3,7 @@
 use Crudify\FieldParser;
 
 it('parses simple fields', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string,body:text,is_published:boolean');
 
     $fields = $parser->getFields();
@@ -23,7 +23,7 @@ it('parses simple fields', function () {
 });
 
 it('parses fields with modifiers', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('email:string:nullable:unique,age:integer:default:18');
 
     $fields = $parser->getFields();
@@ -34,7 +34,7 @@ it('parses fields with modifiers', function () {
 });
 
 it('parses foreign key fields', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('user_id:foreign:users');
 
     $fields = $parser->getFields();
@@ -44,7 +44,7 @@ it('parses foreign key fields', function () {
 });
 
 it('returns correct casts', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('is_active:boolean,views:integer,price:float,published_at:datetime,meta:json');
 
     $casts = $parser->getCasts();
@@ -59,7 +59,7 @@ it('returns correct casts', function () {
 });
 
 it('returns correct migration types', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
 
     expect($parser->getMigrationType('string'))->toBe('string');
     expect($parser->getMigrationType('bigint'))->toBe('bigInteger');
@@ -68,7 +68,7 @@ it('returns correct migration types', function () {
 });
 
 it('ignores empty field names', function () {
-    $parser = new FieldParser();
+    $parser = new FieldParser;
     $parser->parse('title:string,,body:text');
 
     expect($parser->getFields())->toHaveCount(2);

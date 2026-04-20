@@ -22,7 +22,9 @@
     "require-dev": {
         "phpunit/phpunit": "^11.0",
         "orchestra/testbench": "^9.0|^10.0",
-        "pestphp/pest": "^3.0"
+        "pestphp/pest": "^3.0",
+        "phpstan/phpstan": "^2.1",
+        "laravel/pint": "^1.29"
     },
     "extra": {
         "laravel": {
@@ -33,6 +35,14 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
+    "scripts": {
+        "test": "pest --compact",
+        "test:unit": "pest --compact tests/Unit",
+        "test:feature": "pest --compact tests/Feature",
+        "analyse": "phpstan analyse --memory-limit=512M",
+        "format": "pint",
+        "format:check": "pint --test"
+    },
     "config": {
         "allow-plugins": {
             "pestphp/pest-plugin": true

@@ -4,6 +4,7 @@ namespace Crudify\Generators;
 
 class ModelGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $namespace = 'App\\Models';
@@ -14,11 +15,11 @@ class ModelGenerator extends BaseGenerator
         $casts = $this->fieldParser->getCasts();
 
         $fillableStr = collect($fillable)
-            ->map(fn($field) => "'{$field}'")
+            ->map(fn ($field) => "'{$field}'")
             ->implode(",\n        ");
 
         $castsStr = collect($casts)
-            ->map(fn($cast, $field) => "'{$field}' => '{$cast}'")
+            ->map(fn ($cast, $field) => "'{$field}' => '{$cast}'")
             ->implode(",\n        ");
 
         $traits = [];
@@ -30,7 +31,7 @@ class ModelGenerator extends BaseGenerator
         }
 
         $usesStr = implode("\n", $uses);
-        $traitsStr = empty($traits) ? '' : 'use ' . implode(', ', $traits) . ';';
+        $traitsStr = empty($traits) ? '' : 'use '.implode(', ', $traits).';';
 
         $stub = $this->getStub('model');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -45,6 +46,7 @@ class ModelGenerator extends BaseGenerator
         return [$path];
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['model'];

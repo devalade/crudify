@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 
 class FormRequestGenerator extends BaseGenerator
 {
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $paths = [];
@@ -13,7 +14,7 @@ class FormRequestGenerator extends BaseGenerator
         $modelBase = class_basename($model);
         $fields = $this->fieldParser->getFields();
 
-        $storeClass = 'Store' . $modelBase . 'Request';
+        $storeClass = 'Store'.$modelBase.'Request';
         $storePath = $this->getPath($namespace, $storeClass);
         $paths[] = $storePath;
 
@@ -23,7 +24,7 @@ class FormRequestGenerator extends BaseGenerator
         $storeStub = str_replace('{{ rules }}', $this->generateRules($fields, $modelBase, false), $storeStub);
         $this->createFile($storePath, $storeStub);
 
-        $updateClass = 'Update' . $modelBase . 'Request';
+        $updateClass = 'Update'.$modelBase.'Request';
         $updatePath = $this->getPath($namespace, $updateClass);
         $paths[] = $updatePath;
 
@@ -36,6 +37,9 @@ class FormRequestGenerator extends BaseGenerator
         return $paths;
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $fields
+     */
     protected function generateRules(array $fields, string $modelBase, bool $isUpdate): string
     {
         $rules = [];
@@ -92,12 +96,13 @@ class FormRequestGenerator extends BaseGenerator
                 }
             }
 
-            $rules[] = "'{$field['name']}' => [" . implode(', ', $ruleStrings) . "]";
+            $rules[] = "'{$field['name']}' => [".implode(', ', $ruleStrings).']';
         }
 
         return implode(",\n            ", $rules);
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['form-request'];

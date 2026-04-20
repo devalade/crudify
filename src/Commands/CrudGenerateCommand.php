@@ -2,21 +2,20 @@
 
 namespace Crudify\Commands;
 
+use Crudify\FieldParser;
+use Crudify\Generators\ControllerGenerator;
+use Crudify\Generators\FormRequestGenerator;
+use Crudify\Generators\Generator;
+use Crudify\Generators\LivewireComponentGenerator;
+use Crudify\Generators\LivewireViewGenerator;
+use Crudify\Generators\MigrationGenerator;
+use Crudify\Generators\ModelGenerator;
+use Crudify\Generators\PolicyGenerator;
+use Crudify\Generators\RouteGenerator;
+use Crudify\YamlParser;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
-use Crudify\FieldParser;
-use Crudify\YamlParser;
-use Crudify\Generators\{
-    ModelGenerator,
-    MigrationGenerator,
-    ControllerGenerator,
-    FormRequestGenerator,
-    PolicyGenerator,
-    LivewireComponentGenerator,
-    LivewireViewGenerator,
-    RouteGenerator,
-};
 
 class CrudGenerateCommand extends Command
 {
@@ -32,17 +31,18 @@ class CrudGenerateCommand extends Command
 
     protected $description = 'Generate full CRUD with Livewire v4 components';
 
+    /** @var array<int, Generator> */
     protected array $generators = [];
 
     public function handle(): int
     {
-        $model = $this->argument('model');
-        $yamlFile = $this->option('file');
-        $fieldsString = $this->option('fields');
-        $only = $this->option('only');
-        $skip = $this->option('skip');
-        $force = $this->option('force');
-        $dryRun = $this->option('dry-run');
+        $model = is_string($this->argument('model')) ? $this->argument('model') : '';
+        $yamlFile = is_string($this->option('file')) ? $this->option('file') : '';
+        $fieldsString = is_string($this->option('fields')) ? $this->option('fields') : '';
+        $only = is_string($this->option('only')) ? $this->option('only') : null;
+        $skip = is_string($this->option('skip')) ? $this->option('skip') : null;
+        $force = (bool) $this->option('force');
+        $dryRun = (bool) $this->option('dry-run');
 
         if ($yamlFile) {
             return $this->handleYaml($yamlFile, $only, $skip, $force, $dryRun);
@@ -50,12 +50,13 @@ class CrudGenerateCommand extends Command
 
         if (empty($model)) {
             $this->error('Model name is required.');
+
             return self::FAILURE;
         }
 
         $model = trim($model);
 
-        if (!$this->validateModelName($model)) {
+        if (! $this->validateModelName($model)) {
             return self::FAILURE;
         }
 
@@ -64,13 +65,14 @@ class CrudGenerateCommand extends Command
             $this->info('Examples:');
             $this->info('  --fields="title:string,body:text,is_published:boolean"');
             $this->info('  --file=crud.yaml');
+
             return self::FAILURE;
         }
 
-        $fieldParser = new FieldParser();
+        $fieldParser = new FieldParser;
         $fieldParser->parse($fieldsString);
 
-        $softDeletes = $this->option('soft-delete');
+        $softDeletes = (bool) $this->option('soft-delete');
 
         $this->registerGenerators($fieldParser, $force, $dryRun, $softDeletes);
 
@@ -79,33 +81,35 @@ class CrudGenerateCommand extends Command
 
     protected function handleYaml(string $yamlFile, ?string $only, ?string $skip, bool $force, bool $dryRun): int
     {
-        if (!file_exists($yamlFile)) {
+        if (! file_exists($yamlFile)) {
             $this->error("YAML file not found: {$yamlFile}");
+
             return self::FAILURE;
         }
 
-        $yamlParser = new YamlParser();
+        $yamlParser = new YamlParser;
         $yamlParser->parse($yamlFile);
 
         $model = $yamlParser->getModel();
 
-        if (!$model) {
+        if (! $model) {
             $this->error('YAML file must contain a "model" key.');
+
             return self::FAILURE;
         }
 
-        if (!$this->validateModelName($model)) {
+        if (! $this->validateModelName($model)) {
             return self::FAILURE;
         }
 
         $this->info("Generating CRUD for: {$model}");
         $this->info("Using YAML definition: {$yamlFile}");
 
-        $fieldParser = new FieldParser();
+        $fieldParser = new FieldParser;
         $fields = $yamlParser->getFields();
 
         $fieldsString = collect($fields)->map(function ($field) {
-            $parts = [$field['name'] . ':' . $field['type']];
+            $parts = [$field['name'].':'.$field['type']];
 
             if ($field['nullable']) {
                 $parts[] = 'nullable';
@@ -117,10 +121,10 @@ class CrudGenerateCommand extends Command
                 $parts[] = 'index';
             }
             if ($field['default'] !== null) {
-                $parts[] = 'default:' . $field['default'];
+                $parts[] = 'default:'.$field['default'];
             }
             if ($field['foreign_table']) {
-                $parts[] = 'foreign:' . $field['foreign_table'];
+                $parts[] = 'foreign:'.$field['foreign_table'];
             }
 
             return implode(':', $parts);
@@ -139,8 +143,9 @@ class CrudGenerateCommand extends Command
     {
         $base = class_basename($model);
 
-        if (!preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $base)) {
+        if (! preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $base)) {
             $this->error("Invalid model name: {$base}. Must be a valid PHP class name.");
+
             return false;
         }
 
@@ -159,6 +164,7 @@ class CrudGenerateCommand extends Command
 
         if (in_array(strtolower($base), $reserved)) {
             $this->error("Model name '{$base}' is a reserved PHP keyword.");
+
             return false;
         }
 
@@ -167,7 +173,7 @@ class CrudGenerateCommand extends Command
 
     protected function registerGenerators(FieldParser $fieldParser, bool $force, bool $dryRun, bool $softDeletes): void
     {
-        $files = new Filesystem();
+        $files = new Filesystem;
         $options = [
             'force' => $force,
             'dryRun' => $dryRun,
@@ -197,7 +203,7 @@ class CrudGenerateCommand extends Command
             $types = $generator->types();
             $type = $types[0];
 
-            if ($onlyTypes && !in_array($type, $onlyTypes)) {
+            if ($onlyTypes && ! in_array($type, $onlyTypes)) {
                 continue;
             }
 
@@ -210,6 +216,7 @@ class CrudGenerateCommand extends Command
                 $generated = array_merge($generated, $files);
             } catch (\RuntimeException $e) {
                 $this->error($e->getMessage());
+
                 return self::FAILURE;
             }
         }
@@ -227,8 +234,8 @@ class CrudGenerateCommand extends Command
         $resource = Str::kebab(Str::plural(class_basename($model)));
 
         $this->info("\nNext steps:");
-        $this->line("  1. Run: php artisan migrate");
-        $this->line("  2. Ensure you have a layout at resources/views/components/layouts/app.blade.php");
+        $this->line('  1. Run: php artisan migrate');
+        $this->line('  2. Ensure you have a layout at resources/views/components/layouts/app.blade.php');
         $this->line("  3. Visit: /{$resource}");
 
         return self::SUCCESS;

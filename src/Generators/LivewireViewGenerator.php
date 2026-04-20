@@ -6,6 +6,8 @@ use Illuminate\Support\Str;
 
 class LivewireViewGenerator extends BaseGenerator
 {
+    /** @return array<string> */
+    /** @return array<string> */
     public function generate(string $model): array
     {
         $modelBase = class_basename($model);
@@ -14,24 +16,26 @@ class LivewireViewGenerator extends BaseGenerator
         $kebabModels = $this->kebabCase($models);
         $viewPath = str_replace('/', '.', $kebabModels);
 
-        $paths = array_merge($paths ?? [], $this->generateIndexView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath));
-        $paths = array_merge($paths, $this->generateCreateView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath));
-        $paths = array_merge($paths, $this->generateEditView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath));
-        $paths = array_merge($paths, $this->generateShowView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath));
+        $paths = [];
+        $paths = array_merge($paths, $this->generateIndexView($modelBase, $modelVar, $models, $kebabModels, $viewPath));
+        $paths = array_merge($paths, $this->generateCreateView($modelBase, $modelVar, $models, $kebabModels, $viewPath));
+        $paths = array_merge($paths, $this->generateEditView($modelBase, $modelVar, $models, $kebabModels, $viewPath));
+        $paths = array_merge($paths, $this->generateShowView($modelBase, $modelVar, $models, $kebabModels, $viewPath));
 
         return $paths;
     }
 
-    protected function generateIndexView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath)
+    /** @return array<string> */
+    protected function generateIndexView(string $modelBase, string $modelVar, string $models, string $kebabModels, string $viewPath): array
     {
         $path = base_path("resources/views/livewire/pages/{$kebabModels}/index.blade.php");
 
         $fields = $this->fieldParser->getFields();
-        $displayFields = collect($fields)->reject(fn($f) => $f['name'] === 'id')->take(5);
+        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id')->take(5);
 
-        $headers = $displayFields->map(fn($f) => "<th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer\" wire:click=\"sortBy('{$f['name']}')\">\n                        " . Str::title(str_replace('_', ' ', $f['name'])) . "\n                        @if(\$sortField === '{$f['name']}')\n                            @if(\$sortDirection === 'asc') &uarr; @else &darr; @endif\n                        @endif\n                    </th>")->implode("\n                    ");
+        $headers = $displayFields->map(fn ($f) => "<th class=\"px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer\" wire:click=\"sortBy('{$f['name']}')\">\n                        ".Str::title(str_replace('_', ' ', $f['name']))."\n                        @if(\$sortField === '{$f['name']}')\n                            @if(\$sortDirection === 'asc') &uarr; @else &darr; @endif\n                        @endif\n                    </th>")->implode("\n                    ");
 
-        $rowContent = $displayFields->map(fn($f) => "<td class=\"px-6 py-4 whitespace-nowrap\">\n                            @if(\${$modelVar}->{$f['name']})\n                                {{ \${$modelVar}->{$f['name']} }}\n                            @else\n                                <span class=\"text-gray-400\">-</span>\n                            @endif\n                        </td>")->implode("\n                        ");
+        $rowContent = $displayFields->map(fn ($f) => "<td class=\"px-6 py-4 whitespace-nowrap\">\n                            @if(\${$modelVar}->{$f['name']})\n                                {{ \${$modelVar}->{$f['name']} }}\n                            @else\n                                <span class=\"text-gray-400\">-</span>\n                            @endif\n                        </td>")->implode("\n                        ");
 
         $colspan = $displayFields->count() + 1;
 
@@ -40,7 +44,7 @@ class LivewireViewGenerator extends BaseGenerator
         $stub = str_replace('{{ route }}', "{{ route('{$kebabModels}.create') }}", $stub);
         $stub = str_replace('{{ headers }}', $headers, $stub);
         $stub = str_replace('{{ rowContent }}', $rowContent, $stub);
-        $stub = str_replace('{{ colspan }}', $colspan, $stub);
+        $stub = str_replace('{{ colspan }}', (string) $colspan, $stub);
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
 
@@ -49,18 +53,19 @@ class LivewireViewGenerator extends BaseGenerator
         return [$path];
     }
 
-    protected function generateCreateView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath)
+    /** @return array<string> */
+    protected function generateCreateView(string $modelBase, string $modelVar, string $models, string $kebabModels, string $viewPath): array
     {
         $path = base_path("resources/views/livewire/pages/{$kebabModels}/create.blade.php");
 
         $fields = $this->fieldParser->getFields();
         $formFields = collect($fields)
-            ->reject(fn($f) => $f['name'] === 'id')
-            ->map(fn($f) => $this->generateFormField($f, $modelVar))
+            ->reject(fn ($f) => $f['name'] === 'id')
+            ->map(fn ($f) => $this->generateFormField($f, $modelVar))
             ->implode("\n            ");
 
         $stub = $this->getStub('livewire-create-view');
-        $stub = str_replace('{{ title }}', 'Create ' . $modelBase, $stub);
+        $stub = str_replace('{{ title }}', 'Create '.$modelBase, $stub);
         $stub = str_replace('{{ route }}', "{{ route('{$kebabModels}.index') }}", $stub);
         $stub = str_replace('{{ formFields }}', $formFields, $stub);
 
@@ -69,18 +74,19 @@ class LivewireViewGenerator extends BaseGenerator
         return [$path];
     }
 
-    protected function generateEditView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath)
+    /** @return array<string> */
+    protected function generateEditView(string $modelBase, string $modelVar, string $models, string $kebabModels, string $viewPath): array
     {
         $path = base_path("resources/views/livewire/pages/{$kebabModels}/edit.blade.php");
 
         $fields = $this->fieldParser->getFields();
         $formFields = collect($fields)
-            ->reject(fn($f) => $f['name'] === 'id')
-            ->map(fn($f) => $this->generateFormField($f, $modelVar))
+            ->reject(fn ($f) => $f['name'] === 'id')
+            ->map(fn ($f) => $this->generateFormField($f, $modelVar))
             ->implode("\n            ");
 
         $stub = $this->getStub('livewire-edit-view');
-        $stub = str_replace('{{ title }}', 'Edit ' . $modelBase, $stub);
+        $stub = str_replace('{{ title }}', 'Edit '.$modelBase, $stub);
         $stub = str_replace('{{ route }}', "{{ route('{$kebabModels}.index') }}", $stub);
         $stub = str_replace('{{ formFields }}', $formFields, $stub);
 
@@ -89,14 +95,15 @@ class LivewireViewGenerator extends BaseGenerator
         return [$path];
     }
 
-    protected function generateShowView($model, $modelBase, $modelVar, $models, $kebabModels, $viewPath)
+    /** @return array<string> */
+    protected function generateShowView(string $modelBase, string $modelVar, string $models, string $kebabModels, string $viewPath): array
     {
         $path = base_path("resources/views/livewire/pages/{$kebabModels}/show.blade.php");
 
         $fields = $this->fieldParser->getFields();
         $showFields = collect($fields)
-            ->reject(fn($f) => $f['name'] === 'id')
-            ->map(fn($f) => $this->generateShowField($f, $modelVar))
+            ->reject(fn ($f) => $f['name'] === 'id')
+            ->map(fn ($f) => $this->generateShowField($f, $modelVar))
             ->implode("\n            ");
 
         $stub = $this->getStub('livewire-show-view');
@@ -110,7 +117,10 @@ class LivewireViewGenerator extends BaseGenerator
         return [$path];
     }
 
-    protected function generateFormField($field, $modelVar)
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function generateFormField(array $field, string $modelVar): string
     {
         $label = Str::title(str_replace('_', ' ', $field['name']));
         $name = $field['name'];
@@ -151,6 +161,7 @@ BLADE;
 
         if (in_array($field['type'], ['date', 'datetime'])) {
             $inputType = $field['type'] === 'datetime' ? 'datetime-local' : 'date';
+
             return <<<BLADE
 <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">{$label}</label>
@@ -197,7 +208,10 @@ BLADE;
 BLADE;
     }
 
-    protected function generateShowField($field, $modelVar)
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function generateShowField(array $field, string $modelVar): string
     {
         $label = Str::title(str_replace('_', ' ', $field['name']));
         $name = $field['name'];
@@ -210,6 +224,7 @@ BLADE;
 BLADE;
     }
 
+    /** @return array<string> */
     public function types(): array
     {
         return ['livewire-view'];

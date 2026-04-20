@@ -2,9 +2,9 @@
 
 namespace Crudify;
 
-use Illuminate\Support\ServiceProvider;
 use Crudify\Commands\CrudGenerateCommand;
 use Crudify\Commands\CrudStubsCommand;
+use Illuminate\Support\ServiceProvider;
 
 class CrudifyServiceProvider extends ServiceProvider
 {
@@ -22,7 +22,7 @@ class CrudifyServiceProvider extends ServiceProvider
             ]);
 
             $this->publishes([
-                __DIR__ . '/../stubs' => base_path('stubs/crudify'),
+                __DIR__.'/../stubs' => base_path('stubs/crudify'),
             ], 'crudify-stubs');
         }
     }
