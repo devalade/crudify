@@ -2,12 +2,14 @@
 
 use Crudify\FieldParser;
 use Crudify\Generators\ControllerGenerator;
+use Crudify\Generators\FactoryGenerator;
 use Crudify\Generators\FormRequestGenerator;
 use Crudify\Generators\LivewireComponentGenerator;
 use Crudify\Generators\LivewireViewGenerator;
 use Crudify\Generators\MigrationGenerator;
 use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\RouteGenerator;
+use Crudify\Generators\SeederGenerator;
 use Crudify\RelationshipParser;
 use Illuminate\Filesystem\Filesystem;
 
@@ -23,6 +25,8 @@ beforeEach(function () {
     mkdir($this->tmpDir.'/app/Livewire/Pages', 0755, true);
     mkdir($this->tmpDir.'/resources/views/livewire/pages', 0755, true);
     mkdir($this->tmpDir.'/database/migrations', 0755, true);
+    mkdir($this->tmpDir.'/database/factories', 0755, true);
+    mkdir($this->tmpDir.'/database/seeders', 0755, true);
     mkdir($this->tmpDir.'/routes', 0755, true);
     file_put_contents($this->tmpDir.'/routes/web.php', "<?php\n");
 
@@ -244,4 +248,52 @@ it('generates form requests with exists rules for foreign keys', function () {
 
     $storeContent = file_get_contents($paths[0]);
     expect($storeContent)->toContain("Rule::exists('users', 'id')");
+});
+
+it('generates a factory with faker methods mapped to field types', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,body:text,is_published:boolean,published_at:datetime,views:integer,price:decimal,email:email');
+
+    $generator = new FactoryGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(1);
+    expect(file_exists($paths[0]))->toBeTrue();
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain('class PostFactory extends Factory');
+    expect($content)->toContain('fake()->word()');
+    expect($content)->toContain('fake()->paragraph()');
+    expect($content)->toContain('fake()->boolean()');
+    expect($content)->toContain('fake()->dateTime()');
+    expect($content)->toContain('fake()->randomNumber()');
+    expect($content)->toContain('fake()->randomFloat(2, 0, 1000)');
+    expect($content)->toContain('fake()->safeEmail()');
+    expect($content)->toContain('protected $model = Post::class;');
+});
+
+it('generates factory with related factory for foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('user_id:foreign:users');
+
+    $generator = new FactoryGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain('User::factory()');
+});
+
+it('generates a seeder', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $generator = new SeederGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(1);
+    expect(file_exists($paths[0]))->toBeTrue();
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain('class PostSeeder extends Seeder');
+    expect($content)->toContain('Post::factory()->count(10)->create();');
 });

@@ -11,6 +11,8 @@ beforeEach(function () {
     mkdir($this->tmpDir.'/app/Livewire/Pages', 0755, true);
     mkdir($this->tmpDir.'/resources/views/livewire/pages', 0755, true);
     mkdir($this->tmpDir.'/database/migrations', 0755, true);
+    mkdir($this->tmpDir.'/database/factories', 0755, true);
+    mkdir($this->tmpDir.'/database/seeders', 0755, true);
     mkdir($this->tmpDir.'/routes', 0755, true);
     file_put_contents($this->tmpDir.'/routes/web.php', "<?php\n");
 
@@ -63,6 +65,8 @@ it('generates all files successfully', function () {
     expect(file_exists(base_path('resources/views/livewire/pages/posts/edit.blade.php')))->toBeTrue();
     expect(file_exists(base_path('resources/views/livewire/pages/posts/show.blade.php')))->toBeTrue();
     expect(glob(base_path('database/migrations/*_create_posts_table.php')))->toHaveCount(1);
+    expect(file_exists(base_path('database/factories/PostFactory.php')))->toBeTrue();
+    expect(file_exists(base_path('database/seeders/PostSeeder.php')))->toBeTrue();
 });
 
 it('respects --only option', function () {
@@ -169,4 +173,19 @@ YAML;
     $content = file_get_contents(base_path('app/Models/Article.php'));
     expect($content)->toContain('public function author(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
     expect($content)->toContain('public function comments(): \Illuminate\Database\Eloquent\Relations\HasMany');
+});
+
+it('generates factory and seeder with correct content', function () {
+    $this->artisan('crudify:generate Post --fields=title:string,body:text,is_published:boolean')
+        ->assertSuccessful();
+
+    $factoryContent = file_get_contents(base_path('database/factories/PostFactory.php'));
+    expect($factoryContent)->toContain('class PostFactory extends Factory');
+    expect($factoryContent)->toContain('fake()->word()');
+    expect($factoryContent)->toContain('fake()->paragraph()');
+    expect($factoryContent)->toContain('fake()->boolean()');
+
+    $seederContent = file_get_contents(base_path('database/seeders/PostSeeder.php'));
+    expect($seederContent)->toContain('class PostSeeder extends Seeder');
+    expect($seederContent)->toContain('Post::factory()->count(10)->create();');
 });

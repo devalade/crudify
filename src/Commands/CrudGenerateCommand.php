@@ -4,6 +4,7 @@ namespace Crudify\Commands;
 
 use Crudify\FieldParser;
 use Crudify\Generators\ControllerGenerator;
+use Crudify\Generators\FactoryGenerator;
 use Crudify\Generators\FormRequestGenerator;
 use Crudify\Generators\Generator;
 use Crudify\Generators\LivewireComponentGenerator;
@@ -12,6 +13,7 @@ use Crudify\Generators\MigrationGenerator;
 use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\PolicyGenerator;
 use Crudify\Generators\RouteGenerator;
+use Crudify\Generators\SeederGenerator;
 use Crudify\RelationshipParser;
 use Crudify\YamlParser;
 use Illuminate\Console\Command;
@@ -201,6 +203,8 @@ class CrudGenerateCommand extends Command
             new LivewireComponentGenerator($files, $fieldParser, $options, $relationshipParser),
             new LivewireViewGenerator($files, $fieldParser, $options, $relationshipParser),
             new RouteGenerator($files, $fieldParser, $options, $relationshipParser),
+            new FactoryGenerator($files, $fieldParser, $options, $relationshipParser),
+            new SeederGenerator($files, $fieldParser, $options, $relationshipParser),
         ];
     }
 
