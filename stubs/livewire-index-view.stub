@@ -1,0 +1,50 @@
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">{{ title }}</h1>
+        <a href="{{ route }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+            Create New
+        </a>
+    </div>
+
+    <div class="mb-4 flex gap-4">
+        <input
+            type="text"
+            wire:model.live.debounce.300ms="search"
+            placeholder="Search..."
+            class="border rounded px-4 py-2 w-full max-w-md"
+        />
+        <select wire:model.live="perPage" class="border rounded px-4 py-2">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border rounded">
+            <thead class="bg-gray-100">
+                <tr>
+                    {{ headers }}
+                </tr>
+            </thead>
+            <tbody>
+                @forelse(${{ models }} as ${{ modelVar }})
+                    <tr class="border-b hover:bg-gray-50">
+                        {{ rowContent }}
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="{{ colspan }}" class="px-6 py-4 text-center text-gray-500">
+                            No {{ title }} found.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        {{ ${{ models }}->links() }}
+    </div>
+</div>

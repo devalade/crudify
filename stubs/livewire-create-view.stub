@@ -1,0 +1,20 @@
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">{{ title }}</h1>
+            <a href="{{ route }}" class="text-blue-500 hover:underline">
+                Back to List
+            </a>
+        </div>
+
+        <form wire:submit="save" class="bg-white p-6 rounded shadow">
+            {{ formFields }}
+
+            <div class="mt-6">
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">
+                    Create
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

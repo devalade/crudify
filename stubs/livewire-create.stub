@@ -1,0 +1,29 @@
+<?php
+
+namespace {{ namespace }};
+
+use Livewire\Component;
+use Livewire\Attributes\{Layout, Title, Validate};
+use {{ modelNamespace }}\{{ model }};
+
+#[Layout('components.layouts.app')]
+#[Title('{{ title }}')]
+class {{ class }} extends Component
+{
+    {{ properties }}
+
+    public function save(): void
+    {
+        $validated = $this->validate();
+
+        {{ model }}::create($validated);
+
+        session()->flash('success', '{{ model }} created successfully.');
+        $this->redirectRoute('{{ route }}.index');
+    }
+
+    public function render()
+    {
+        return view('livewire.pages.{{ viewPath }}.create');
+    }
+}

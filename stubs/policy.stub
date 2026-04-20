@@ -1,0 +1,51 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ modelNamespace }}\{{ model }};
+
+class {{ class }}
+{
+    /**
+     * Determine if the given policy authorizes the user to view any.
+     */
+    public function viewAny(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine if the given policy authorizes the user to view.
+     */
+    public function view({{ model }} ${{ modelVar }}): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine if the given policy authorizes the user to create.
+     */
+    public function create(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine if the given policy authorizes the user to update.
+     */
+    public function update({{ model }} ${{ modelVar }}): bool
+    {
+        return true;
+    }
+
+    /**
+     * Determine if the given policy authorizes the user to delete.
+     */
+    public function delete({{ model }} ${{ modelVar }}): bool
+    {
+        return true;
+    }
+
+    {{ restoreMethod }}
+    {{ forceDeleteMethod }}
+}

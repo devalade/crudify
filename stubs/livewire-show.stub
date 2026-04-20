@@ -1,0 +1,27 @@
+<?php
+
+namespace {{ namespace }};
+
+use Livewire\Component;
+use Livewire\Attributes\{Layout, Title};
+use {{ modelNamespace }}\{{ model }};
+
+#[Layout('components.layouts.app')]
+#[Title('{{ title }}')]
+class {{ class }} extends Component
+{
+    public {{ model }} ${{ modelVar }};
+
+    public function delete(): void
+    {
+        $this->{{ modelVar }}->delete();
+
+        session()->flash('success', '{{ model }} deleted successfully.');
+        $this->redirectRoute('{{ route }}.index');
+    }
+
+    public function render()
+    {
+        return view('livewire.pages.{{ viewPath }}.show');
+    }
+}

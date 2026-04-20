@@ -1,0 +1,32 @@
+model: Post
+
+fields:
+  title:
+    type: string
+    nullable: false
+    unique: true
+  slug:
+    type: string
+    nullable: false
+    unique: true
+    index: true
+  body:
+    type: text
+    nullable: false
+  is_published:
+    type: boolean
+    default: false
+  published_at:
+    type: datetime
+    nullable: true
+  author_id:
+    type: foreign
+    foreign: users
+    nullable: false
+
+searchable:
+  - title
+  - body
+
+options:
+  soft_deletes: false

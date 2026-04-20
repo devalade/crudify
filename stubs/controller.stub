@@ -1,0 +1,47 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
+class {{ class }} extends Controller
+{
+    use AuthorizesRequests;
+
+    public function index()
+    {
+        {{ indexBody }}
+    }
+
+    public function create()
+    {
+        {{ createBody }}
+    }
+
+    public function store({{ storeRequest }} $request)
+    {
+        {{ storeBody }}
+    }
+
+    public function show({{ model }} ${{ modelVar }})
+    {
+        {{ showBody }}
+    }
+
+    public function edit({{ model }} ${{ modelVar }})
+    {
+        {{ editBody }}
+    }
+
+    public function update({{ updateRequest }} $request, {{ model }} ${{ modelVar }})
+    {
+        {{ updateBody }}
+    }
+
+    public function destroy({{ model }} ${{ modelVar }})
+    {
+        {{ destroyBody }}
+    }
+}

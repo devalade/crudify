@@ -1,0 +1,19 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\Database\Eloquent\Model;
+{{ uses }}
+
+class {{ class }} extends Model
+{
+    {{ traits }}
+
+    protected $fillable = [
+        {{ fillable }}
+    ];
+
+    protected $casts = [
+        {{ casts }}
+    ];
+}
