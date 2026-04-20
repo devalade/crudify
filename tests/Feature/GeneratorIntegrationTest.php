@@ -8,6 +8,7 @@ use Crudify\Generators\LivewireViewGenerator;
 use Crudify\Generators\MigrationGenerator;
 use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\RouteGenerator;
+use Crudify\RelationshipParser;
 use Illuminate\Filesystem\Filesystem;
 
 beforeEach(function () {
@@ -175,4 +176,72 @@ it('does not duplicate routes on subsequent runs', function () {
 
     $content = file_get_contents(base_path('routes/web.php'));
     expect(substr_count($content, "Route::get('/posts', Index::class)"))->toBe(1);
+});
+
+it('generates model with relationship methods', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,user_id:foreign:users');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User,comments:hasMany:Comment');
+
+    $generator = new ModelGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain('public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
+    expect($content)->toContain('return $this->belongsTo(\App\Models\User::class);');
+    expect($content)->toContain('public function comments(): \Illuminate\Database\Eloquent\Relations\HasMany');
+    expect($content)->toContain('return $this->hasMany(\App\Models\Comment::class);');
+});
+
+it('generates controller with eager loading when relationships exist', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User');
+
+    $generator = new ControllerGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain("Post::query()->with(['user'])->latest()->paginate(10)");
+});
+
+it('generates controller without eager loading when no relationships exist', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $generator = new ControllerGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+    expect($content)->toContain("'posts' => Post::latest()->paginate(10),");
+    expect($content)->not->toContain('->with(');
+});
+
+it('generates livewire index with eager loading when relationships exist', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User');
+
+    $generator = new LivewireComponentGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $indexContent = file_get_contents($paths[0]);
+    expect($indexContent)->toContain("->with(['user'])");
+});
+
+it('generates form requests with exists rules for foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('user_id:foreign:users');
+
+    $generator = new FormRequestGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $storeContent = file_get_contents($paths[0]);
+    expect($storeContent)->toContain("Rule::exists('users', 'id')");
 });

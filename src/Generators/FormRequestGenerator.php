@@ -83,6 +83,10 @@ class FormRequestGenerator extends BaseGenerator
                 }
             }
 
+            if ($field['type'] === 'foreign' && is_string($field['foreign_table'] ?? null)) {
+                $ruleSet[] = "Rule::exists('{$field['foreign_table']}', 'id')";
+            }
+
             if ($field['type'] === 'text') {
                 $ruleSet[] = 'string';
             }

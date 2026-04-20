@@ -135,3 +135,38 @@ YAML;
 
     expect(file_exists(base_path('app/Models/Article.php')))->toBeTrue();
 });
+
+it('generates model with relationships via cli option', function () {
+    $this->artisan('crudify:generate Post --fields=title:string,user_id:foreign:users --relationships=user:belongsTo:User')
+        ->assertSuccessful();
+
+    $content = file_get_contents(base_path('app/Models/Post.php'));
+    expect($content)->toContain('public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
+    expect($content)->toContain('return $this->belongsTo(\App\Models\User::class);');
+});
+
+it('handles yaml file with relationships', function () {
+    $yaml = <<<'YAML'
+model: Article
+fields:
+  title: string
+  author_id: foreign:users
+relationships:
+  author:
+    type: belongsTo
+    model: User
+  comments:
+    type: hasMany
+    model: Comment
+YAML;
+
+    $yamlPath = $this->tmpDir.'/test.yaml';
+    file_put_contents($yamlPath, $yaml);
+
+    $this->artisan('crudify:generate', ['--file' => $yamlPath])
+        ->assertSuccessful();
+
+    $content = file_get_contents(base_path('app/Models/Article.php'));
+    expect($content)->toContain('public function author(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
+    expect($content)->toContain('public function comments(): \Illuminate\Database\Eloquent\Relations\HasMany');
+});

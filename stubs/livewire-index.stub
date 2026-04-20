@@ -38,7 +38,7 @@ class {{ class }} extends Component
     public function render()
     {
         return view('livewire.pages.{{ viewPath }}.index', [
-            '{{ models }}' => {{ model }}::query()
+            '{{ models }}' => {{ model }}::query(){{ with }}
                 ->when($this->search, fn($query) => $query->where(function($q) {
                     {{ searchConditions }}
                 }))

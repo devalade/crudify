@@ -65,6 +65,29 @@ class YamlParser
         return $this->data['searchable'] ?? [];
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function getRelationships(): array
+    {
+        /** @var array<string, mixed> $relationships */
+        $relationships = $this->data['relationships'] ?? [];
+        $parsed = [];
+
+        foreach ($relationships as $name => $config) {
+            if (! is_array($config)) {
+                continue;
+            }
+
+            /** @var array<string, mixed> $config */
+            $parsed[] = [
+                'name' => $name,
+                'type' => $config['type'] ?? 'belongsTo',
+                'model' => $config['model'] ?? 'Model',
+            ];
+        }
+
+        return $parsed;
+    }
+
     /** @return array<string, mixed> */
     public function getOptions(): array
     {

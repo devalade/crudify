@@ -3,6 +3,7 @@
 namespace Crudify\Generators;
 
 use Crudify\FieldParser;
+use Crudify\RelationshipParser;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
 
@@ -11,6 +12,8 @@ abstract class BaseGenerator implements Generator
     protected Filesystem $files;
 
     protected FieldParser $fieldParser;
+
+    protected ?RelationshipParser $relationshipParser = null;
 
     protected bool $force = false;
 
@@ -21,10 +24,11 @@ abstract class BaseGenerator implements Generator
     /**
      * @param  array<string, mixed>  $options
      */
-    public function __construct(Filesystem $files, FieldParser $fieldParser, array $options = [])
+    public function __construct(Filesystem $files, FieldParser $fieldParser, array $options = [], ?RelationshipParser $relationshipParser = null)
     {
         $this->files = $files;
         $this->fieldParser = $fieldParser;
+        $this->relationshipParser = $relationshipParser;
         $this->force = $options['force'] ?? false;
         $this->dryRun = $options['dryRun'] ?? false;
         $this->softDeletes = $options['softDeletes'] ?? false;
@@ -100,5 +104,34 @@ abstract class BaseGenerator implements Generator
     protected function kebabCase(string $string): string
     {
         return Str::kebab($string);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function getRelationships(): array
+    {
+        return $this->relationshipParser?->getRelationships() ?? [];
+    }
+
+    protected function getWithClause(): string
+    {
+        $relationships = $this->getRelationships();
+
+        if (empty($relationships)) {
+            return '';
+        }
+
+        $names = [];
+
+        foreach ($relationships as $rel) {
+            if (is_string($rel['name'] ?? null)) {
+                $names[] = $rel['name'];
+            }
+        }
+
+        if (empty($names)) {
+            return '';
+        }
+
+        return "->with(['".implode("', '", $names)."'])";
     }
 }

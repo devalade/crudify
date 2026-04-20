@@ -43,9 +43,12 @@ class ControllerGenerator extends BaseGenerator
 
     protected function indexBody(string $modelBase, string $models): string
     {
+        $with = $this->getWithClause();
+        $query = $with !== '' ? "{$modelBase}::query(){$with}->" : "{$modelBase}::";
+
         return <<<PHP
 return view('{$models}.index', [
-            '{$models}' => {$modelBase}::latest()->paginate(10),
+            '{$models}' => {$query}latest()->paginate(10),
         ]);
 PHP;
     }

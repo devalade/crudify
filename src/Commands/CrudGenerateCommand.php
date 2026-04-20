@@ -12,6 +12,7 @@ use Crudify\Generators\MigrationGenerator;
 use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\PolicyGenerator;
 use Crudify\Generators\RouteGenerator;
+use Crudify\RelationshipParser;
 use Crudify\YamlParser;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
@@ -22,6 +23,7 @@ class CrudGenerateCommand extends Command
     protected $signature = 'crudify:generate {model? : The model name (e.g., Post)}
                             {--fields= : Comma-separated field definitions (e.g., title:string,body:text)}
                             {--file= : Path to YAML definition file (overrides --fields)}
+                            {--relationships= : Comma-separated relationships (e.g., user:belongsTo:User,comments:hasMany:Comment)}
                             {--only= : Generate only specified types (comma-separated)}
                             {--skip= : Skip specified types (comma-separated)}
                             {--soft-delete : Add soft deletes to model and migration}
@@ -72,9 +74,16 @@ class CrudGenerateCommand extends Command
         $fieldParser = new FieldParser;
         $fieldParser->parse($fieldsString);
 
+        $relationshipsString = is_string($this->option('relationships')) ? $this->option('relationships') : '';
+        $relationshipParser = new RelationshipParser;
+
+        if ($relationshipsString !== '') {
+            $relationshipParser->parse($relationshipsString);
+        }
+
         $softDeletes = (bool) $this->option('soft-delete');
 
-        $this->registerGenerators($fieldParser, $force, $dryRun, $softDeletes);
+        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes);
 
         return $this->runGenerators($model, $only, $skip, $dryRun);
     }
@@ -132,9 +141,12 @@ class CrudGenerateCommand extends Command
 
         $fieldParser->parse($fieldsString);
 
+        $relationshipParser = new RelationshipParser;
+        $relationshipParser->setRelationships($yamlParser->getRelationships());
+
         $softDeletes = $yamlParser->hasSoftDeletes();
 
-        $this->registerGenerators($fieldParser, $force, $dryRun, $softDeletes);
+        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes);
 
         return $this->runGenerators($model, $only, $skip, $dryRun);
     }
@@ -171,7 +183,7 @@ class CrudGenerateCommand extends Command
         return true;
     }
 
-    protected function registerGenerators(FieldParser $fieldParser, bool $force, bool $dryRun, bool $softDeletes): void
+    protected function registerGenerators(FieldParser $fieldParser, RelationshipParser $relationshipParser, bool $force, bool $dryRun, bool $softDeletes): void
     {
         $files = new Filesystem;
         $options = [
@@ -181,14 +193,14 @@ class CrudGenerateCommand extends Command
         ];
 
         $this->generators = [
-            new ModelGenerator($files, $fieldParser, $options),
-            new MigrationGenerator($files, $fieldParser, $options),
-            new ControllerGenerator($files, $fieldParser, $options),
-            new FormRequestGenerator($files, $fieldParser, $options),
-            new PolicyGenerator($files, $fieldParser, $options),
-            new LivewireComponentGenerator($files, $fieldParser, $options),
-            new LivewireViewGenerator($files, $fieldParser, $options),
-            new RouteGenerator($files, $fieldParser, $options),
+            new ModelGenerator($files, $fieldParser, $options, $relationshipParser),
+            new MigrationGenerator($files, $fieldParser, $options, $relationshipParser),
+            new ControllerGenerator($files, $fieldParser, $options, $relationshipParser),
+            new FormRequestGenerator($files, $fieldParser, $options, $relationshipParser),
+            new PolicyGenerator($files, $fieldParser, $options, $relationshipParser),
+            new LivewireComponentGenerator($files, $fieldParser, $options, $relationshipParser),
+            new LivewireViewGenerator($files, $fieldParser, $options, $relationshipParser),
+            new RouteGenerator($files, $fieldParser, $options, $relationshipParser),
         ];
     }
 
