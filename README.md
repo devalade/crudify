@@ -1,5 +1,7 @@
 # Crudify
 
+[![Tests](https://github.com/devalade/crudify/actions/workflows/tests.yml/badge.svg)](https://github.com/devalade/crudify/actions/workflows/tests.yml)
+
 Generate full CRUD scaffolding for Laravel with a single command. Built for **Livewire v4** and **Laravel 11/12**.
 
 Crudify creates models, migrations, controllers, form requests, policies, Livewire components + views, routes, factories, and seeders — with support for relationships, soft deletes, and searchable fields.
