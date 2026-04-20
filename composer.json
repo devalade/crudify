@@ -1,5 +1,5 @@
 {
-    "name": "crudify/crudify",
+    "name": "devalade/crudify",
     "description": "Generate full CRUD with Livewire v4 components in Laravel",
     "type": "library",
     "license": "MIT",
