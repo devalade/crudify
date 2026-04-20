@@ -46,6 +46,23 @@ class FormRequestGenerator extends BaseGenerator
         $table = Str::snake(Str::plural($modelBase));
         $modelVar = Str::camel($modelBase);
 
+        foreach ($this->getRelationships() as $rel) {
+            if ($rel['type'] === 'belongsTo') {
+                $foreignKey = Str::snake($rel['name']).'_id';
+                $relatedTable = Str::plural(Str::snake($rel['model']));
+                $ruleSet = [$isUpdate ? 'sometimes' : 'required', 'integer', "Rule::exists('{$relatedTable}', 'id')"];
+                $ruleStrings = [];
+                foreach ($ruleSet as $rule) {
+                    if (str_starts_with($rule, 'Rule::')) {
+                        $ruleStrings[] = $rule;
+                    } else {
+                        $ruleStrings[] = "'{$rule}'";
+                    }
+                }
+                $rules[] = "'{$foreignKey}' => [".implode(', ', $ruleStrings).']';
+            }
+        }
+
         foreach ($fields as $field) {
             if ($field['name'] === 'id') {
                 continue;

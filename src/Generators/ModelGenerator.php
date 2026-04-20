@@ -2,6 +2,8 @@
 
 namespace Crudify\Generators;
 
+use Illuminate\Support\Str;
+
 class ModelGenerator extends BaseGenerator
 {
     /** @return array<string> */
@@ -13,6 +15,12 @@ class ModelGenerator extends BaseGenerator
 
         $fillable = $this->fieldParser->getFillable();
         $casts = $this->fieldParser->getCasts();
+
+        foreach ($this->getRelationships() as $rel) {
+            if ($rel['type'] === 'belongsTo') {
+                $fillable[] = Str::snake($rel['name']).'_id';
+            }
+        }
 
         $fillableStr = collect($fillable)
             ->map(fn ($field) => "'{$field}'")

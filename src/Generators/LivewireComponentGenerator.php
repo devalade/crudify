@@ -67,10 +67,19 @@ class LivewireComponentGenerator extends BaseGenerator
         $path = base_path("app/Livewire/Pages/{$pluralBase}/Create.php");
 
         $fields = $this->fieldParser->getFields();
+        $relationshipProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => 'public int $'.Str::snake($r['name']).'_id;')
+            ->implode("\n    ");
+
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(fn ($f) => "public {$this->getPropertyType($f)} \${$f['name']};")
             ->implode("\n    ");
+
+        if ($relationshipProperties) {
+            $properties = $relationshipProperties."\n    ".$properties;
+        }
 
         $stub = $this->getStub('livewire-create');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -95,15 +104,35 @@ class LivewireComponentGenerator extends BaseGenerator
         $path = base_path("app/Livewire/Pages/{$pluralBase}/Edit.php");
 
         $fields = $this->fieldParser->getFields();
+        $relationshipProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => 'public int $'.Str::snake($r['name']).'_id;')
+            ->implode("\n    ");
+
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(fn ($f) => "public {$this->getPropertyType($f)} \${$f['name']};")
             ->implode("\n    ");
 
-        $fillProperties = collect($fields)
+        if ($relationshipProperties) {
+            $properties = $relationshipProperties."\n    ".$properties;
+        }
+
+        $fillProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => '$this->'.Str::snake($r['name'])."_id = \${$modelVar}->".Str::snake($r['name']).'_id;')
+            ->implode("\n        ");
+
+        $fieldFillProperties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(fn ($f) => "\$this->{$f['name']} = \${$modelVar}->{$f['name']};")
             ->implode("\n        ");
+
+        if ($fillProperties) {
+            $fillProperties .= "\n        ".$fieldFillProperties;
+        } else {
+            $fillProperties = $fieldFillProperties;
+        }
 
         $stub = $this->getStub('livewire-edit');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);

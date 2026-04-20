@@ -18,6 +18,14 @@ class FactoryGenerator extends BaseGenerator
         $fieldDefs = [];
         $uses = [];
 
+        foreach ($this->getRelationships() as $rel) {
+            if ($rel['type'] === 'belongsTo') {
+                $foreignKey = Str::snake($rel['name']).'_id';
+                $relatedModel = $rel['model'];
+                $fieldDefs[] = "'{$foreignKey}' => \\App\\Models\\{$relatedModel}::factory(),";
+            }
+        }
+
         foreach ($fields as $field) {
             if ($field['name'] === 'id') {
                 continue;

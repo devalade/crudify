@@ -5,5 +5,5 @@ use App\Livewire\Pages\{{ livewireNamespace }}\Edit;
 
 Route::get('/{{ resource }}', Index::class)->name('{{ resource }}.index');
 Route::get('/{{ resource }}/create', Create::class)->name('{{ resource }}.create');
-Route::get('/{{ resource }}/{{ modelVar }}', Show::class)->name('{{ resource }}.show');
-Route::get('/{{ resource }}/{{ modelVar }}/edit', Edit::class)->name('{{ resource }}.edit');
+Route::get('/{{ resource }}/{{{ modelVar }}}', Show::class)->name('{{ resource }}.show');
+Route::get('/{{ resource }}/{{{ modelVar }}}/edit', Edit::class)->name('{{ resource }}.edit');
