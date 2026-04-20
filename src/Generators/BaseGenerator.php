@@ -69,7 +69,10 @@ abstract class BaseGenerator implements Generator
 
     protected function getPath(string $namespace, string $class): string
     {
-        return base_path(str_replace('\\', '/', $namespace).'/'.$class.'.php');
+        $relativePath = str_replace('\\', '/', $namespace);
+        $relativePath = preg_replace('#^App/#', 'app/', $relativePath);
+
+        return base_path($relativePath.'/'.$class.'.php');
     }
 
     protected function createFile(string $path, string $content): void
