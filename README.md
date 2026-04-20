@@ -9,7 +9,7 @@ Crudify creates models, migrations, controllers, form requests, policies, Livewi
 ## Installation
 
 ```bash
-composer require crudify/crudify
+composer require devalade/crudify
 ```
 
 ---
@@ -215,7 +215,7 @@ Then edit files in `stubs/crudify/`. The package will use your custom stubs on t
 ## Requirements
 
 - PHP ^8.2
-- Laravel ^11.0 or ^12.0
+- Laravel ^11.0, ^12.0 or ^13.0
 - Livewire ^4.0
 
 ---
