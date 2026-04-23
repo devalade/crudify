@@ -131,6 +131,9 @@ class CrudGenerateCommand extends Command
             if ($field['index']) {
                 $parts[] = 'index';
             }
+            if ($field['multiple']) {
+                $parts[] = 'multiple';
+            }
             if ($field['default'] !== null) {
                 $parts[] = 'default:'.$field['default'];
             }

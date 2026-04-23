@@ -7,7 +7,6 @@ use Illuminate\Support\Str;
 class LivewireComponentGenerator extends BaseGenerator
 {
     /** @return array<string> */
-    /** @return array<string> */
     public function generate(string $model): array
     {
         $modelBase = class_basename($model);
@@ -67,29 +66,88 @@ class LivewireComponentGenerator extends BaseGenerator
         $path = base_path("app/Livewire/Pages/{$pluralBase}/Create.php");
 
         $fields = $this->fieldParser->getFields();
-        $relationshipProperties = collect($this->getRelationships())
+        $fileFields = $this->fieldParser->getFileFields();
+        $hasFiles = ! empty($fileFields);
+
+        $belongsToProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => 'public int $'.Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \$".Str::snake($r['name']).'_id;')
+            ->implode("\n    ");
+
+        $belongsToOptions = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => 'public $'.Str::camel($r['model']).'Options = [];')
+            ->implode("\n    ");
+
+        $belongsToManyProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => "#[Validate('nullable|array')]\n    public array \$selected".Str::studly(Str::plural($r['name'])).'Ids = [];')
+            ->implode("\n    ");
+
+        $belongsToManyOptions = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => 'public $'.Str::camel(Str::plural($r['name'])).'Options = [];')
             ->implode("\n    ");
 
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
-            ->map(fn ($f) => "public {$this->getPropertyType($f)} \${$f['name']};")
+            ->map(function ($f) {
+                $validate = $this->getValidationAttribute($f, false);
+                if (in_array($f['type'], ['image', 'file'])) {
+                    if ($f['multiple'] ?? false) {
+                        return $validate."\n    public $".$f['name'].' = [];';
+                    }
+
+                    return $validate."\n    public $".$f['name'].';';
+                }
+
+                return $validate."\n    public {$this->getPropertyType($f)} \${$f['name']};";
+            })
             ->implode("\n    ");
 
-        if ($relationshipProperties) {
-            $properties = $relationshipProperties."\n    ".$properties;
+        $mountBody = collect($this->getRelationships())
+            ->filter(fn ($r) => in_array($r['type'], ['belongsTo', 'belongsToMany']))
+            ->map(function ($r) {
+                if ($r['type'] === 'belongsTo') {
+                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                }
+
+                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::all();';
+            })
+            ->implode("\n        ");
+
+        $allProperties = $properties;
+        if ($belongsToProperties) {
+            $allProperties = $belongsToProperties."\n    ".$allProperties;
         }
+        if ($belongsToManyProperties) {
+            $allProperties = $belongsToManyProperties."\n    ".$allProperties;
+        }
+        if ($belongsToOptions) {
+            $allProperties = $belongsToOptions."\n    ".$allProperties;
+        }
+        if ($belongsToManyOptions) {
+            $allProperties = $belongsToManyOptions."\n    ".$allProperties;
+        }
+
+        $fileStorage = $this->generateFileStorage($fields, $modelBase, $modelVar);
+        $syncRelationships = $this->generateSyncRelationships($modelVar, false);
 
         $stub = $this->getStub('livewire-create');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
         $stub = str_replace('{{ class }}', $class, $stub);
         $stub = str_replace('{{ modelNamespace }}', 'App\\Models', $stub);
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ title }}', 'Create '.$modelBase, $stub);
-        $stub = str_replace('{{ properties }}', $properties, $stub);
+        $stub = str_replace('{{ properties }}', $allProperties, $stub);
         $stub = str_replace('{{ route }}', $kebabModels, $stub);
         $stub = str_replace('{{ viewPath }}', $viewPath, $stub);
+        $stub = str_replace('{{ mountBody }}', $mountBody ?: '// Initialize form', $stub);
+        $stub = str_replace('{{ fileStorage }}', $fileStorage, $stub);
+        $stub = str_replace('{{ syncRelationships }}', $syncRelationships, $stub);
+        $stub = str_replace('{{ uses }}', $hasFiles ? "\nuse Livewire\\WithFileUploads;" : '', $stub);
+        $stub = str_replace('{{ traits }}', $hasFiles ? "\n    use WithFileUploads;" : '', $stub);
 
         $this->createFile($path, $stub);
 
@@ -104,18 +162,57 @@ class LivewireComponentGenerator extends BaseGenerator
         $path = base_path("app/Livewire/Pages/{$pluralBase}/Edit.php");
 
         $fields = $this->fieldParser->getFields();
-        $relationshipProperties = collect($this->getRelationships())
+        $fileFields = $this->fieldParser->getFileFields();
+        $hasFiles = ! empty($fileFields);
+
+        $belongsToProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => 'public int $'.Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => "#[Validate('sometimes|integer')]\n    public int \$".Str::snake($r['name']).'_id;')
+            ->implode("\n    ");
+
+        $belongsToOptions = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => 'public $'.Str::camel($r['model']).'Options = [];')
+            ->implode("\n    ");
+
+        $belongsToManyProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => "#[Validate('nullable|array')]\n    public array \$selected".Str::studly(Str::plural($r['name'])).'Ids = [];')
+            ->implode("\n    ");
+
+        $belongsToManyOptions = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => 'public $'.Str::camel(Str::plural($r['name'])).'Options = [];')
             ->implode("\n    ");
 
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
-            ->map(fn ($f) => "public {$this->getPropertyType($f)} \${$f['name']};")
+            ->map(function ($f) {
+                $validate = $this->getValidationAttribute($f, true);
+                if (in_array($f['type'], ['image', 'file'])) {
+                    if ($f['multiple'] ?? false) {
+                        return $validate."\n    public $".$f['name'].' = [];';
+                    }
+
+                    return $validate."\n    public $".$f['name'].';';
+                }
+
+                return $validate."\n    public {$this->getPropertyType($f)} \${$f['name']};";
+            })
             ->implode("\n    ");
 
-        if ($relationshipProperties) {
-            $properties = $relationshipProperties."\n    ".$properties;
+        $allProperties = $properties;
+        if ($belongsToProperties) {
+            $allProperties = $belongsToProperties."\n    ".$allProperties;
+        }
+        if ($belongsToManyProperties) {
+            $allProperties = $belongsToManyProperties."\n    ".$allProperties;
+        }
+        if ($belongsToOptions) {
+            $allProperties = $belongsToOptions."\n    ".$allProperties;
+        }
+        if ($belongsToManyOptions) {
+            $allProperties = $belongsToManyOptions."\n    ".$allProperties;
         }
 
         $fillProperties = collect($this->getRelationships())
@@ -123,16 +220,42 @@ class LivewireComponentGenerator extends BaseGenerator
             ->map(fn ($r) => '$this->'.Str::snake($r['name'])."_id = \${$modelVar}->".Str::snake($r['name']).'_id;')
             ->implode("\n        ");
 
-        $fieldFillProperties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
-            ->map(fn ($f) => "\$this->{$f['name']} = \${$modelVar}->{$f['name']};")
+        $belongsToManyFill = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => '$this->selected'.Str::studly(Str::plural($r['name']))."Ids = \${$modelVar}->".Str::plural($r['name'])."->pluck('id')->toArray();")
             ->implode("\n        ");
 
-        if ($fillProperties) {
-            $fillProperties .= "\n        ".$fieldFillProperties;
-        } else {
-            $fillProperties = $fieldFillProperties;
+        $fieldFillProperties = collect($fields)
+            ->reject(fn ($f) => $f['name'] === 'id')
+            ->map(function ($f) use ($modelVar) {
+                if (in_array($f['type'], ['image', 'file'])) {
+                    return '// File fields are not pre-filled for security';
+                }
+
+                return "\$this->{$f['name']} = \${$modelVar}->{$f['name']};";
+            })
+            ->implode("\n        ");
+
+        $fillParts = array_filter([$fillProperties, $belongsToManyFill, $fieldFillProperties]);
+        $fillProperties = implode("\n        ", $fillParts);
+
+        $mountBody = collect($this->getRelationships())
+            ->filter(fn ($r) => in_array($r['type'], ['belongsTo', 'belongsToMany']))
+            ->map(function ($r) {
+                if ($r['type'] === 'belongsTo') {
+                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                }
+
+                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::all();';
+            })
+            ->implode("\n        ");
+
+        if ($mountBody) {
+            $fillProperties = $mountBody."\n        ".$fillProperties;
         }
+
+        $fileStorage = $this->generateFileStorage($fields, $modelBase, $modelVar, true);
+        $syncRelationships = $this->generateSyncRelationships($modelVar, true);
 
         $stub = $this->getStub('livewire-edit');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -141,10 +264,14 @@ class LivewireComponentGenerator extends BaseGenerator
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ title }}', 'Edit '.$modelBase, $stub);
-        $stub = str_replace('{{ properties }}', $properties, $stub);
+        $stub = str_replace('{{ properties }}', $allProperties, $stub);
         $stub = str_replace('{{ fillProperties }}', $fillProperties, $stub);
         $stub = str_replace('{{ route }}', $kebabModels, $stub);
         $stub = str_replace('{{ viewPath }}', $viewPath, $stub);
+        $stub = str_replace('{{ fileStorage }}', $fileStorage, $stub);
+        $stub = str_replace('{{ syncRelationships }}', $syncRelationships, $stub);
+        $stub = str_replace('{{ uses }}', $hasFiles ? "\nuse Livewire\\WithFileUploads;" : '', $stub);
+        $stub = str_replace('{{ traits }}', $hasFiles ? "\n    use WithFileUploads;" : '', $stub);
 
         $this->createFile($path, $stub);
 
@@ -171,6 +298,127 @@ class LivewireComponentGenerator extends BaseGenerator
         $this->createFile($path, $stub);
 
         return [$path];
+    }
+
+    protected function generateSyncRelationships(string $modelVar, bool $isEdit): string
+    {
+        $belongsToMany = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany');
+
+        if ($belongsToMany->isEmpty()) {
+            return '';
+        }
+
+        $lines = [];
+        $modelRef = $isEdit ? "\$this->{$modelVar}" : "\${$modelVar}";
+
+        foreach ($belongsToMany as $rel) {
+            $name = Str::plural($rel['name']);
+            $propertyName = 'selected'.Str::studly($name).'Ids';
+            $lines[] = "{$modelRef}->{$name}()->sync(\$this->{$propertyName});";
+        }
+
+        return implode("\n        ", $lines);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $fields
+     */
+    protected function generateFileStorage(array $fields, string $modelBase, string $modelVar, bool $isEdit = false): string
+    {
+        $fileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']));
+
+        if (empty($fileFields)) {
+            return '';
+        }
+
+        $lines = [];
+        $table = Str::plural(Str::snake($modelBase));
+
+        foreach ($fileFields as $field) {
+            $name = $field['name'];
+            $isMultiple = $field['multiple'] ?? false;
+
+            if ($isMultiple) {
+                $lines[] = "if (!empty(\$this->{$name})) {";
+                $lines[] = '    $paths = [];';
+                $lines[] = "    foreach (\$this->{$name} as \$file) {";
+                $lines[] = "        \$paths[] = \$file->store('{$table}', 'public');";
+                $lines[] = '    }';
+
+                if ($isEdit) {
+                    $lines[] = "    if (!empty(\$this->{$modelVar}->{$name})) {";
+                    $lines[] = "        \$existing = is_array(\$this->{$modelVar}->{$name}) ? \$this->{$modelVar}->{$name} : json_decode(\$this->{$modelVar}->{$name}, true) ?? [];";
+                    $lines[] = '        $paths = array_merge($existing, $paths);';
+                    $lines[] = '    }';
+                }
+
+                $lines[] = "    \$validated['{$name}'] = \$paths;";
+                $lines[] = '}';
+            } else {
+                $lines[] = "if (\$this->{$name}) {";
+                $lines[] = "    \$validated['{$name}'] = \$this->{$name}->store('{$table}', 'public');";
+                $lines[] = '}';
+            }
+        }
+
+        return implode("\n        ", $lines);
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function getValidationAttribute(array $field, bool $isUpdate): string
+    {
+        $rules = [];
+
+        if ($isUpdate) {
+            $rules[] = $field['nullable'] ? 'nullable' : 'sometimes';
+        } else {
+            $rules[] = $field['nullable'] ? 'nullable' : 'required';
+        }
+
+        if ($field['type'] === 'email') {
+            $rules[] = 'email';
+        }
+
+        if ($field['type'] === 'integer' || $field['type'] === 'bigint') {
+            $rules[] = 'integer';
+        }
+
+        if ($field['type'] === 'boolean') {
+            $rules[] = 'boolean';
+        }
+
+        if ($field['type'] === 'date' || $field['type'] === 'datetime') {
+            $rules[] = 'date';
+        }
+
+        if ($field['type'] === 'image') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'image';
+                $rules[] = 'max:2048';
+            }
+        }
+
+        if ($field['type'] === 'file') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'file';
+                $rules[] = 'max:2048';
+            }
+        }
+
+        if ($field['type'] === 'text') {
+            $rules[] = 'string';
+        }
+
+        $ruleString = implode('|', $rules);
+
+        return "#[Validate('{$ruleString}')]";
     }
 
     /**

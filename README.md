@@ -2,9 +2,9 @@
 
 [![Tests](https://github.com/devalade/crudify/actions/workflows/tests.yml/badge.svg)](https://github.com/devalade/crudify/actions/workflows/tests.yml)
 
-Generate full CRUD scaffolding for Laravel with a single command. Built for **Livewire v4** and **Laravel 11/12**.
+Generate full CRUD scaffolding for Laravel with a single command. Built for **Livewire v4** and **Laravel 11/12/13**.
 
-Crudify creates models, migrations, controllers, form requests, policies, Livewire components + views, routes, factories, and seeders — with support for relationships, soft deletes, and searchable fields.
+Crudify creates models, migrations, controllers, form requests, policies, Livewire components + views, routes, factories, and seeders — with support for relationships, soft deletes, file uploads, and searchable fields.
 
 ---
 
@@ -23,6 +23,7 @@ composer require devalade/crudify
 ```bash
 php artisan crudify:generate Post \
   --fields="title:string,body:text,is_published:boolean,published_at:datetime" \
+  --relationships="user:belongsTo:User,category:belongsTo:Category,tags:belongsToMany:Tag" \
   --soft-delete
 ```
 
@@ -36,22 +37,70 @@ php artisan crudify:generate --file=post.yaml
 
 ```yaml
 model: Post
+
 fields:
-  title: string
-  slug: string:unique
-  body: text
-  is_published: boolean:default:false
-  published_at: datetime:nullable
-  category_id: foreign:categories
-options:
-  soft_deletes: true
+  title:
+    type: string
+    nullable: false
+    unique: true
+
+  slug:
+    type: string
+    nullable: false
+    unique: true
+    index: true
+
+  body:
+    type: text
+    nullable: false
+
+  is_published:
+    type: boolean
+    default: false
+
+  published_at:
+    type: datetime
+    nullable: true
+
+  # Single image upload
+  featured_image:
+    type: image
+    nullable: true
+
+  # Multiple file uploads
+  gallery:
+    type: image
+    multiple: true
+    nullable: true
+
+  # Single file upload
+  attachment:
+    type: file
+    nullable: true
+
 relationships:
+  user:
+    type: belongsTo
+    model: User
+
   category:
     type: belongsTo
     model: Category
+
   tags:
     type: belongsToMany
     model: Tag
+
+  comments:
+    type: hasMany
+    model: Comment
+
+searchable:
+  - title
+  - body
+
+options:
+  soft_deletes: true
 ```
 
 Then run:
@@ -83,10 +132,12 @@ name:type:modifier1:modifier2
 | `status:string:default:draft` | `string` with default value |
 | `user_id:foreign:users` | `foreignId` constrained to `users` table |
 | `views:integer:index` | `integer` with index |
+| `photo:image` | `string` column + file upload input |
+| `documents:file:multiple` | `json` column + multiple file upload input |
 
 ### Available Types
 
-`string`, `text`, `integer`, `bigint`, `float`, `double`, `decimal`, `boolean`, `date`, `datetime`, `timestamp`, `time`, `json`, `uuid`, `email`, `foreign`
+`string`, `text`, `integer`, `bigint`, `float`, `double`, `decimal`, `boolean`, `date`, `datetime`, `timestamp`, `time`, `json`, `uuid`, `email`, `foreign`, `image`, `file`
 
 ### Modifiers
 
@@ -95,6 +146,39 @@ name:type:modifier1:modifier2
 - `index` — adds database index
 - `default:value` — sets default value
 - `foreign:table` — creates foreign key constraint
+- `multiple` — enables multiple file uploads (for `image` and `file` types)
+
+---
+
+## File Uploads
+
+Crudify supports single and multiple file/image uploads out of the box.
+
+### Single Upload
+
+```bash
+php artisan crudify:generate Product \
+  --fields="name:string,price:decimal,photo:image"
+```
+
+Generates:
+- `string` column for the file path
+- `WithFileUploads` trait in Livewire components
+- File input with `accept="image/*"`
+- Image preview on edit/show views
+
+### Multiple Uploads
+
+```bash
+php artisan crudify:generate Gallery \
+  --fields="title:string,photos:image:multiple"
+```
+
+Generates:
+- `json` column for storing multiple paths
+- Array-cast in the model
+- Multiple file input (`<input type="file" multiple>`)
+- Gallery preview grid on edit/show views
 
 ---
 
@@ -107,7 +191,7 @@ Define Eloquent relationships in your model with a simple syntax.
 ```bash
 php artisan crudify:generate Post \
   --fields="title:string,user_id:foreign:users" \
-  --relationships="user:belongsTo:User,comments:hasMany:Comment"
+  --relationships="user:belongsTo:User,category:belongsTo:Category,tags:belongsToMany:Tag,comments:hasMany:Comment"
 ```
 
 ### YAML
@@ -130,15 +214,40 @@ relationships:
 
 ### Supported Types
 
-- `belongsTo`
-- `hasMany`
-- `hasOne`
-- `belongsToMany`
+- `belongsTo` — generates dropdown in forms, eager-loaded in index
+- `hasMany` — generates model method only
+- `hasOne` — generates model method only
+- `belongsToMany` — generates checkbox group in forms, syncs on save
 
 Relationships are automatically:
 - Added to the model with proper return types
 - Eager-loaded in controllers and Livewire index components
 - Validated with `Rule::exists()` for foreign key fields in form requests
+- Displayed in index tables and show views
+
+### belongsToMany Example
+
+For a `tags:belongsToMany:Tag` relationship, the generator produces:
+
+**Create/Edit Forms:**
+- Checkbox group for selecting tags
+- `selectedTagsIds` array property with `#[Validate]` attribute
+
+**Save/Update:**
+```php
+$post = Post::create($validated);
+$post->tags()->sync($this->selectedTagsIds);
+```
+
+**Factory:**
+```php
+public function configure(): static
+{
+    return $this->afterCreating(function (Post $model) {
+        $model->tags()->attach(Tag::inRandomOrder()->take(rand(1, 3))->pluck('id'));
+    });
+}
+```
 
 ---
 
@@ -157,11 +266,41 @@ For a model named `Post`, Crudify generates:
 | `app/Http/Requests/UpdatePostRequest.php` | Form request with unique rule ignoring current model |
 | `app/Policies/PostPolicy.php` | Authorization policy |
 | `app/Livewire/Pages/Posts/Index.php` | Livewire component with search, sort, pagination |
-| `app/Livewire/Pages/Posts/Create.php` | Livewire create component |
-| `app/Livewire/Pages/Posts/Edit.php` | Livewire edit component |
+| `app/Livewire/Pages/Posts/Create.php` | Livewire create component with `#[Validate]` |
+| `app/Livewire/Pages/Posts/Edit.php` | Livewire edit component with `#[Validate]` |
 | `app/Livewire/Pages/Posts/Show.php` | Livewire show component |
-| `resources/views/livewire/pages/posts/*.blade.php` | Tailwind-styled views |
-| `routes/web.php` | Livewire v4 routes appended with collision detection |
+| `resources/views/livewire/pages/posts/*.blade.php` | Pico CSS-styled semantic HTML views |
+| `routes/web.php` | Livewire v4 routes with fully-qualified class names |
+
+### Livewire 4 Compatible
+
+All generated components use Livewire 4 syntax:
+- `#[Validate]` attributes on properties (fixes `MissingRulesException`)
+- `#[Layout]` and `#[Title]` attributes
+- `WithFileUploads` trait for file handling
+- `wire:confirm` for delete confirmations
+
+---
+
+## UI Framework
+
+Generated views use **Pico CSS** via CDN — a classless CSS framework. No Tailwind classes are used. The views use semantic HTML:
+
+```html
+<article>
+  <header>
+    <nav aria-label="breadcrumb">...</nav>
+    <h1>Posts</h1>
+  </header>
+  <table>...</table>
+</article>
+```
+
+Add Pico CSS to your layout:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+```
 
 ---
 
@@ -181,6 +320,21 @@ php artisan crudify:generate {model}
 ```
 
 ### Examples
+
+**Generate with file uploads:**
+
+```bash
+php artisan crudify:generate Product \
+  --fields="name:string,price:decimal,photo:image"
+```
+
+**Generate with relationships:**
+
+```bash
+php artisan crudify:generate Post \
+  --fields="title:string,body:text" \
+  --relationships="user:belongsTo:User,tags:belongsToMany:Tag"
+```
 
 **Generate only model and migration:**
 

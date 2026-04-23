@@ -50,6 +50,8 @@ class FactoryGenerator extends BaseGenerator
         $fieldsStr = implode("\n            ", $fieldDefs);
         $usesStr = implode("\n", array_unique($uses));
 
+        $configure = $this->generateConfigure($modelBase);
+
         $stub = $this->getStub('factory');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
         $stub = str_replace('{{ class }}', $class, $stub);
@@ -57,6 +59,7 @@ class FactoryGenerator extends BaseGenerator
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ fields }}', $fieldsStr, $stub);
         $stub = str_replace('{{ uses }}', $usesStr, $stub);
+        $stub = str_replace('{{ configure }}', $configure, $stub);
 
         $this->createFile($path, $stub);
 
@@ -69,6 +72,14 @@ class FactoryGenerator extends BaseGenerator
     protected function getFakerMethod(array $field): string
     {
         $type = is_string($field['type'] ?? null) ? $field['type'] : 'string';
+
+        if ($type === 'image' || $type === 'file') {
+            if ($field['multiple'] ?? false) {
+                return "[fake()->word().'.jpg']";
+            }
+
+            return "fake()->word().'.jpg'";
+        }
 
         return match ($type) {
             'string' => 'fake()->word()',
@@ -101,6 +112,34 @@ class FactoryGenerator extends BaseGenerator
         }
 
         return 'fake()->randomDigitNotNull()';
+    }
+
+    protected function generateConfigure(string $modelBase): string
+    {
+        $belongsToMany = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany');
+
+        if ($belongsToMany->isEmpty()) {
+            return '';
+        }
+
+        $lines = [];
+        foreach ($belongsToMany as $rel) {
+            $name = Str::plural($rel['name']);
+            $relatedModel = $rel['model'];
+            $lines[] = "        \$model->{$name}()->attach(\\App\\Models\\{$relatedModel}::inRandomOrder()->take(rand(1, 3))->pluck('id'));";
+        }
+
+        $attachCode = implode("\n", $lines);
+
+        return <<<PHP
+    public function configure(): static
+    {
+        return \$this->afterCreating(function ({$modelBase} \$model) {
+{$attachCode}
+        });
+    }
+PHP;
     }
 
     /** @return array<string> */

@@ -5,18 +5,29 @@ namespace {{ namespace }};
 use Livewire\Component;
 use Livewire\Attributes\{Layout, Title, Validate};
 use {{ modelNamespace }}\{{ model }};
+{{ uses }}
 
 #[Layout('components.layouts.app')]
 #[Title('{{ title }}')]
 class {{ class }} extends Component
 {
+    {{ traits }}
     {{ properties }}
+
+    public function mount(): void
+    {
+        {{ mountBody }}
+    }
 
     public function save(): void
     {
         $validated = $this->validate();
 
-        {{ model }}::create($validated);
+        {{ fileStorage }}
+
+        ${{ modelVar }} = {{ model }}::create($validated);
+
+        {{ syncRelationships }}
 
         session()->flash('success', '{{ model }} created successfully.');
         $this->redirectRoute('{{ route }}.index');

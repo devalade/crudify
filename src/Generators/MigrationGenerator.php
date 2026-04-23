@@ -29,7 +29,7 @@ class MigrationGenerator extends BaseGenerator
                 continue;
             }
 
-            $type = $this->fieldParser->getMigrationType($field['type']);
+            $type = $this->fieldParser->getMigrationType($field['type'], $field['multiple'] ?? false);
             $column = "\$table->{$type}('{$field['name']}')";
 
             if ($field['nullable']) {

@@ -92,6 +92,24 @@ class FormRequestGenerator extends BaseGenerator
                 $ruleSet[] = 'date';
             }
 
+            if ($field['type'] === 'image') {
+                if ($field['multiple'] ?? false) {
+                    $ruleSet[] = 'array';
+                } else {
+                    $ruleSet[] = 'image';
+                    $ruleSet[] = 'max:2048';
+                }
+            }
+
+            if ($field['type'] === 'file') {
+                if ($field['multiple'] ?? false) {
+                    $ruleSet[] = 'array';
+                } else {
+                    $ruleSet[] = 'file';
+                    $ruleSet[] = 'max:2048';
+                }
+            }
+
             if ($field['unique']) {
                 if ($isUpdate) {
                     $ruleSet[] = "Rule::unique('{$table}', '{$field['name']}')->ignore(\$this->route('{$modelVar}'))";
@@ -118,6 +136,12 @@ class FormRequestGenerator extends BaseGenerator
             }
 
             $rules[] = "'{$field['name']}' => [".implode(', ', $ruleStrings).']';
+
+            // Add validation for individual items in multiple file uploads
+            if (($field['type'] === 'image' || $field['type'] === 'file') && ($field['multiple'] ?? false)) {
+                $itemRule = $field['type'] === 'image' ? "'image'" : "'file'";
+                $rules[] = "'{$field['name']}.*' => [{$itemRule}, 'max:2048']";
+            }
         }
 
         return implode(",\n            ", $rules);

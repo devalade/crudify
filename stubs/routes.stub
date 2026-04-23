@@ -1,9 +1,4 @@
-use App\Livewire\Pages\{{ livewireNamespace }}\Index;
-use App\Livewire\Pages\{{ livewireNamespace }}\Create;
-use App\Livewire\Pages\{{ livewireNamespace }}\Show;
-use App\Livewire\Pages\{{ livewireNamespace }}\Edit;
-
-Route::get('/{{ resource }}', Index::class)->name('{{ resource }}.index');
-Route::get('/{{ resource }}/create', Create::class)->name('{{ resource }}.create');
-Route::get('/{{ resource }}/{{{ modelVar }}}', Show::class)->name('{{ resource }}.show');
-Route::get('/{{ resource }}/{{{ modelVar }}}/edit', Edit::class)->name('{{ resource }}.edit');
+Route::get('/{{ resource }}', \App\Livewire\Pages\{{ livewireNamespace }}\Index::class)->name('{{ resource }}.index');
+Route::get('/{{ resource }}/create', \App\Livewire\Pages\{{ livewireNamespace }}\Create::class)->name('{{ resource }}.create');
+Route::get('/{{ resource }}/{{{ modelVar }}}', \App\Livewire\Pages\{{ livewireNamespace }}\Show::class)->name('{{ resource }}.show');
+Route::get('/{{ resource }}/{{{ modelVar }}}/edit', \App\Livewire\Pages\{{ livewireNamespace }}\Edit::class)->name('{{ resource }}.edit');

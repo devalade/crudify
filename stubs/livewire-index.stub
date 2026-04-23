@@ -35,6 +35,12 @@ class {{ class }} extends Component
         }
     }
 
+    public function delete(int $id): void
+    {
+        {{ model }}::findOrFail($id)->delete();
+        session()->flash('success', '{{ model }} deleted successfully.');
+    }
+
     public function render()
     {
         return view('livewire.pages.{{ viewPath }}.index', [

@@ -17,6 +17,7 @@ it('parses simple fields', function () {
         'default' => null,
         'index' => false,
         'foreign_table' => null,
+        'multiple' => false,
     ]);
     expect($fields[1]['type'])->toBe('text');
     expect($fields[2]['type'])->toBe('boolean');
@@ -65,6 +66,46 @@ it('returns correct migration types', function () {
     expect($parser->getMigrationType('bigint'))->toBe('bigInteger');
     expect($parser->getMigrationType('datetime'))->toBe('dateTime');
     expect($parser->getMigrationType('foreign'))->toBe('foreignId');
+});
+
+it('parses image and file fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('photo:image,attachment:file,gallery:image:multiple,docs:file:multiple');
+
+    $fields = $parser->getFields();
+
+    expect($fields)->toHaveCount(4);
+    expect($fields[0])->toBe([
+        'name' => 'photo',
+        'type' => 'image',
+        'nullable' => false,
+        'unique' => false,
+        'default' => null,
+        'index' => false,
+        'foreign_table' => null,
+        'multiple' => false,
+    ]);
+    expect($fields[1]['type'])->toBe('file');
+    expect($fields[2]['multiple'])->toBeTrue();
+    expect($fields[2]['type'])->toBe('image');
+    expect($fields[3]['multiple'])->toBeTrue();
+    expect($fields[3]['type'])->toBe('file');
+});
+
+it('returns correct migration types for image and file fields', function () {
+    $parser = new FieldParser;
+
+    expect($parser->getMigrationType('image'))->toBe('string');
+    expect($parser->getMigrationType('file'))->toBe('string');
+    expect($parser->getMigrationType('image', true))->toBe('json');
+    expect($parser->getMigrationType('file', true))->toBe('json');
+});
+
+it('returns correct casts for multiple file fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('gallery:image:multiple');
+
+    expect($parser->getCasts())->toBe(['gallery' => 'array']);
 });
 
 it('ignores empty field names', function () {

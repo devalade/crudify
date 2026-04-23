@@ -1,29 +1,100 @@
+# CRUDify YAML Configuration Example
+# Generate with: php artisan crudify:generate --file=example.yaml
+
 model: Post
 
 fields:
+  # Simple fields
   title:
     type: string
     nullable: false
     unique: true
+
   slug:
     type: string
     nullable: false
     unique: true
     index: true
+
   body:
     type: text
     nullable: false
+
+  excerpt:
+    type: text
+    nullable: true
+
+  # Boolean with default
   is_published:
     type: boolean
     default: false
+
+  # DateTime field
   published_at:
     type: datetime
     nullable: true
-  author_id:
-    type: foreign
-    foreign: users
-    nullable: false
 
+  # Numeric fields
+  view_count:
+    type: integer
+    nullable: true
+    default: 0
+
+  rating:
+    type: decimal
+    nullable: true
+
+  # Single image upload
+  featured_image:
+    type: image
+    nullable: true
+
+  # Single file upload
+  attachment:
+    type: file
+    nullable: true
+
+  # Multiple image uploads
+  gallery:
+    type: image
+    multiple: true
+    nullable: true
+
+  # Multiple file uploads
+  documents:
+    type: file
+    multiple: true
+    nullable: true
+
+  # Foreign key field (legacy style, prefer relationships section)
+  # author_id:
+  #   type: foreign
+  #   foreign: users
+  #   nullable: false
+
+# Relationships define model methods and form fields
+# Supported types: belongsTo, hasMany, hasOne, belongsToMany
+relationships:
+  # One-to-Many (inverse) - generates dropdown in forms
+  user:
+    type: belongsTo
+    model: User
+
+  category:
+    type: belongsTo
+    model: Category
+
+  # Many-to-Many - generates checkbox group in forms
+  tags:
+    type: belongsToMany
+    model: Tag
+
+  # One-to-Many - generates model method only (no form field)
+  comments:
+    type: hasMany
+    model: Comment
+
+# Searchable fields for the index table
 searchable:
   - title
   - body

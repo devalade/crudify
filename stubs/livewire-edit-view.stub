@@ -1,20 +1,22 @@
-<div class="container mx-auto px-4 py-8">
-    <div class="max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">{{ title }}</h1>
-            <a href="{{ route }}" class="text-blue-500 hover:underline">
-                Back to List
-            </a>
-        </div>
+<article>
+    <header>
+        <nav aria-label="breadcrumb">
+            <ul>
+                <li><a href="{{ route }}">{{ pluralTitle }}</a></li>
+                <li>Edit</li>
+            </ul>
+        </nav>
+        <h1>Edit {{ title }}</h1>
+    </header>
 
-        <form wire:submit="update" class="bg-white p-6 rounded shadow">
+    <form wire:submit="update">
+        <fieldset>
             {{ formFields }}
+        </fieldset>
 
-            <div class="mt-6 flex gap-4">
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">
-                    Update
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+        <footer class="grid">
+            <button type="submit">Update</button>
+            <a href="{{ route }}" class="outline secondary" role="button">Cancel</a>
+        </footer>
+    </form>
+</article>

@@ -53,6 +53,7 @@ class YamlParser
                 'default' => $config['default'] ?? null,
                 'index' => $config['index'] ?? false,
                 'foreign_table' => $config['foreign'] ?? null,
+                'multiple' => $config['multiple'] ?? false,
             ];
         }
 

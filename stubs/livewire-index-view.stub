@@ -1,50 +1,63 @@
-<div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">{{ title }}</h1>
-        <a href="{{ route }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-            Create New
-        </a>
-    </div>
+<article>
+    <header class="grid" style="align-items: center;">
+        <h1>{{ title }}</h1>
+        <div>
+            <a href="{{ route }}" role="button">Create New</a>
+        </div>
+    </header>
 
-    <div class="mb-4 flex gap-4">
+    <fieldset role="group">
         <input
-            type="text"
+            type="search"
             wire:model.live.debounce.300ms="search"
             placeholder="Search..."
-            class="border rounded px-4 py-2 w-full max-w-md"
         />
-        <select wire:model.live="perPage" class="border rounded px-4 py-2">
+        <select wire:model.live="perPage">
             <option value="10">10</option>
             <option value="25">25</option>
             <option value="50">50</option>
             <option value="100">100</option>
         </select>
-    </div>
+    </fieldset>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border rounded">
-            <thead class="bg-gray-100">
+    <figure>
+        <table>
+            <thead>
                 <tr>
                     {{ headers }}
+                    <th style="width: 1px; white-space: nowrap;"></th>
                 </tr>
             </thead>
             <tbody>
                 @forelse(${{ models }} as ${{ modelVar }})
-                    <tr class="border-b hover:bg-gray-50">
+                    <tr>
                         {{ rowContent }}
+                        <td style="width: 1px; white-space: nowrap;">
+                            <div style="display: flex; gap: 0.25rem; align-items: stretch;">
+                                <a href="{{ route('{{ routeName }}.show', ${{ modelVar }}) }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; margin: 0; display: inline-flex; align-items: center; justify-content: center;" title="View">[V]</a>
+                                <a href="{{ route('{{ routeName }}.edit', ${{ modelVar }}) }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; margin: 0; display: inline-flex; align-items: center; justify-content: center;" title="Edit">[E]</a>
+                                <button
+                                    wire:click="delete({{ ${{ modelVar }}->id }})"
+                                    wire:confirm="Are you sure you want to delete this {{ titleSingular }}?"
+                                    class="outline secondary"
+                                    style="padding: 0.25rem 0.5rem; margin: 0;"
+                                    title="Delete"
+                                >
+                                    [D]
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ colspan }}" class="px-6 py-4 text-center text-gray-500">
-                            No {{ title }} found.
+                        <td colspan="{{ colspan }}" class="text-center">
+                            <em>No {{ title }} found.</em>
                         </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
-    </div>
+    </figure>
 
-    <div class="mt-4">
-        {{ ${{ models }}->links() }}
-    </div>
-</div>
+    {{ ${{ models }}->links() }}
+</article>

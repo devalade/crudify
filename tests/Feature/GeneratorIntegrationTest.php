@@ -166,8 +166,7 @@ it('generates livewire v4 compatible routes', function () {
     $paths = $generator->generate('Post');
 
     $content = file_get_contents($paths[0]);
-    expect($content)->toContain("Route::get('/posts', Index::class)->name('posts.index');");
-    expect($content)->toContain("use App\Livewire\Pages\Posts\Index;");
+    expect($content)->toContain("Route::get('/posts', \\App\\Livewire\\Pages\\Posts\\Index::class)->name('posts.index');");
     expect($content)->not->toContain('Route::livewire');
 });
 
@@ -180,7 +179,7 @@ it('does not duplicate routes on subsequent runs', function () {
     $generator->generate('Post');
 
     $content = file_get_contents(base_path('routes/web.php'));
-    expect(substr_count($content, "Route::get('/posts', Index::class)"))->toBe(1);
+    expect(substr_count($content, "Route::get('/posts', \\App\\Livewire\\Pages\\Posts\\Index::class)"))->toBe(1);
 });
 
 it('generates model with relationship methods', function () {

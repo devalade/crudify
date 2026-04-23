@@ -51,6 +51,7 @@ class FieldParser
                 'default' => $default,
                 'index' => false,
                 'foreign_table' => $foreignTable,
+                'multiple' => false,
             ];
 
             foreach ($parts as $part) {
@@ -59,6 +60,7 @@ class FieldParser
                     'unique' => $field['unique'] = true,
                     'index' => $field['index'] = true,
                     'foreign' => $field['type'] = 'foreign',
+                    'multiple' => $field['multiple'] = true,
                     default => $field['type'] = $part,
                 };
             }
@@ -87,7 +89,7 @@ class FieldParser
         $casts = [];
 
         foreach ($this->fields as $field) {
-            $cast = $this->getCastType($field['type']);
+            $cast = $this->getCastType($field);
             if ($cast) {
                 $casts[$field['name']] = $cast;
             }
@@ -96,8 +98,17 @@ class FieldParser
         return $casts;
     }
 
-    protected function getCastType(string $type): ?string
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function getCastType(array $field): ?string
     {
+        $type = $field['type'];
+
+        if ($field['multiple'] && in_array($type, ['image', 'file'])) {
+            return 'array';
+        }
+
         return match ($type) {
             'boolean' => 'boolean',
             'integer', 'bigint' => 'integer',
@@ -111,10 +122,14 @@ class FieldParser
         };
     }
 
-    public function getMigrationType(string $type): string
+    public function getMigrationType(string $type, bool $multiple = false): string
     {
+        if ($multiple && in_array($type, ['image', 'file'])) {
+            return 'json';
+        }
+
         return match ($type) {
-            'string' => 'string',
+            'string', 'image', 'file' => 'string',
             'text' => 'text',
             'integer' => 'integer',
             'bigint' => 'bigInteger',
@@ -131,5 +146,23 @@ class FieldParser
             'foreign' => 'foreignId',
             default => 'string',
         };
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function getFileFields(): array
+    {
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']));
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function getSingleFileFields(): array
+    {
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']) && ! $f['multiple']);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function getMultipleFileFields(): array
+    {
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']) && $f['multiple']);
     }
 }

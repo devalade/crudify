@@ -5,11 +5,13 @@ namespace {{ namespace }};
 use Livewire\Component;
 use Livewire\Attributes\{Layout, Title, Validate};
 use {{ modelNamespace }}\{{ model }};
+{{ uses }}
 
 #[Layout('components.layouts.app')]
 #[Title('{{ title }}')]
 class {{ class }} extends Component
 {
+    {{ traits }}
     public {{ model }} ${{ modelVar }};
     {{ properties }}
 
@@ -22,7 +24,11 @@ class {{ class }} extends Component
     {
         $validated = $this->validate();
 
+        {{ fileStorage }}
+
         $this->{{ modelVar }}->update($validated);
+
+        {{ syncRelationships }}
 
         session()->flash('success', '{{ model }} updated successfully.');
         $this->redirectRoute('{{ route }}.index');

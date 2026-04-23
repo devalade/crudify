@@ -16,4 +16,6 @@ class {{ class }} extends Factory
             {{ fields }}
         ];
     }
+
+{{ configure }}
 }
