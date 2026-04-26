@@ -125,6 +125,20 @@ it('generates livewire views without calling route at generation time', function
     expect($indexContent)->not->toContain('Illuminate\Routing\Exceptions\RouteNotFoundException');
 });
 
+it('generates livewire create and edit views with csrf tokens', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|body:text');
+
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain('@csrf');
+    expect($editContent)->toContain('@csrf');
+});
+
 it('generates model with soft deletes when enabled', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');
