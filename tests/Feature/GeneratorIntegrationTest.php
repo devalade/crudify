@@ -10,6 +10,7 @@ use Crudify\Generators\MigrationGenerator;
 use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\RouteGenerator;
 use Crudify\Generators\SeederGenerator;
+use Crudify\Generators\VoltLivewireGenerator;
 use Crudify\RelationshipParser;
 use Illuminate\Filesystem\Filesystem;
 
@@ -369,4 +370,158 @@ it('limits relationship options to prevent memory issues', function () {
     $createContent = file_get_contents($paths[1]);
     expect($createContent)->toContain('::limit(100)->get()');
     expect($createContent)->not->toContain('::all()');
+});
+
+it('generates volt livewire components with all placeholders replaced', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,body:text');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(4);
+
+    foreach ($paths as $path) {
+        expect(str_ends_with($path, '.blade.php'))->toBeTrue();
+        expect(str_contains($path, 'resources/views/pages/'))->toBeTrue();
+    }
+
+    $indexContent = file_get_contents($paths[0]);
+    expect($indexContent)->not->toContain('{{ viewPath }}');
+    expect($indexContent)->not->toContain('{{ titleSingular }}');
+    expect($indexContent)->toContain('view(\'pages.posts.index\'');
+
+    $createContent = file_get_contents($paths[1]);
+    expect($createContent)->not->toContain('{{ viewPath }}');
+    expect($createContent)->toContain('view(\'pages.posts.create\'');
+
+    $showContent = file_get_contents($paths[3]);
+    expect($showContent)->not->toContain('{{ pluralTitle }}');
+    expect($showContent)->not->toContain('{{ showFields }}');
+    expect($showContent)->not->toContain('{{ editRoute }}');
+    expect($showContent)->not->toContain('{{ titleSingular }}');
+    expect($showContent)->toContain('route(\'posts.edit\'');
+});
+
+it('generates volt show view with correct details structure', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,body:text,is_published:boolean');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $showContent = file_get_contents($paths[3]);
+    expect($showContent)->toContain('<tr><td>Title</td><td>{{ $post->title }}</td></tr>');
+    expect($showContent)->toContain('<tr><td>Body</td><td>{{ $post->body }}</td></tr>');
+    expect($showContent)->not->toContain('{{ details }}');
+    expect($showContent)->not->toContain('{{ pluralTitle }}');
+});
+
+it('generates volt index view with correct eager loading clause', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $indexContent = file_get_contents($paths[0]);
+    expect($indexContent)->toContain("->with(['user'])");
+});
+
+it('generates volt create with file upload support', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,photo:image,attachment:file');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(4);
+
+    $createContent = file_get_contents($paths[1]);
+    expect($createContent)->toContain('use Livewire\WithFileUploads;');
+    expect($createContent)->toContain('use WithFileUploads;');
+    expect($createContent)->toContain('public $photo;');
+    expect($createContent)->toContain('public $attachment;');
+    expect($createContent)->toContain('type="file"');
+    expect($createContent)->toContain('accept="image/*"');
+    expect($createContent)->toContain("->store('posts', 'public')");
+    expect($createContent)->not->toContain('{{ uses }}');
+    expect($createContent)->not->toContain('{{ traits }}');
+    expect($createContent)->not->toContain('{{ properties }}');
+});
+
+it('generates volt edit with file deletion and removal methods', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,gallery:image:multiple,docs:file:multiple');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+    expect($editContent)->toContain('use Livewire\WithFileUploads;');
+    expect($editContent)->toContain('use Illuminate\Support\Facades\Storage;');
+    expect($editContent)->toContain('use WithFileUploads;');
+    expect($editContent)->toContain('public $gallery = [];');
+    expect($editContent)->toContain('public array $galleryToRemove = [];');
+    expect($editContent)->toContain('public $docs = [];');
+    expect($editContent)->toContain('public array $docsToRemove = [];');
+    expect($editContent)->toContain('public function removeGalleryFile(string $path): void');
+    expect($editContent)->toContain('public function removeDocsFile(string $path): void');
+    expect($editContent)->toContain("Storage::disk('public')->delete(\$path)");
+    expect($editContent)->not->toContain('{{ fileStorage }}');
+    expect($editContent)->not->toContain('{{ extraMethods }}');
+});
+
+it('generates volt create with belongsTo relationship support', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    expect($createContent)->toContain('public int $user_id = 0;');
+    expect($createContent)->toContain('public $userOptions = [];');
+    expect($createContent)->toContain('$this->userOptions = \App\Models\User::limit(100)->get();');
+});
+
+it('generates volt edit with syncRelationships for belongsToMany', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('tags:belongsToMany:Tag');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain('public array $selectedTagsIds = [];');
+    expect($editContent)->toContain('$this->post->tags()->sync($this->selectedTagsIds);');
+});
+
+it('generates volt index with search and pagination', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,body:text,email:email');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $indexContent = file_get_contents($paths[0]);
+    expect($indexContent)->toContain('public string $search = \'\';');
+    expect($indexContent)->toContain('public string $sortField = \'id\';');
+    expect($indexContent)->toContain('public string $sortDirection = \'desc\';');
+    expect($indexContent)->toContain('public int $perPage = 10;');
+    expect($indexContent)->toContain('wire:model.live.debounce.300ms="search"');
+    expect($indexContent)->toContain('$q->orWhere(\'title\', \'like\', \'%\' . $this->search . \'%\')');
+    expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
+    expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
 });
