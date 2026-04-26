@@ -10,6 +10,12 @@ class MigrationGenerator extends BaseGenerator
     public function generate(string $model): array
     {
         $table = Str::plural(Str::snake($model));
+
+        $existingMigration = $this->findExistingMigration($table);
+        if ($existingMigration !== null) {
+            return [$existingMigration];
+        }
+
         $timestamp = now()->format('Y_m_d_His');
         $filename = "{$timestamp}_create_{$table}_table.php";
         $path = database_path("migrations/{$filename}");
@@ -75,6 +81,23 @@ class MigrationGenerator extends BaseGenerator
         $this->createFile($path, $stub);
 
         return [$path];
+    }
+
+    protected function findExistingMigration(string $table): ?string
+    {
+        $migrationsPath = database_path('migrations');
+
+        if (! file_exists($migrationsPath)) {
+            return null;
+        }
+
+        $files = glob($migrationsPath.'/*_create_'.$table.'_table.php');
+
+        if (empty($files)) {
+            return null;
+        }
+
+        return $files[0];
     }
 
     /** @return array<string> */
