@@ -14,6 +14,7 @@ use Crudify\Generators\ModelGenerator;
 use Crudify\Generators\PolicyGenerator;
 use Crudify\Generators\RouteGenerator;
 use Crudify\Generators\SeederGenerator;
+use Crudify\Generators\VoltLivewireGenerator;
 use Crudify\RelationshipParser;
 use Crudify\YamlParser;
 use Illuminate\Console\Command;
@@ -31,7 +32,8 @@ class CrudGenerateCommand extends Command
                             {--soft-delete : Add soft deletes to model and migration}
                             {--searchable= : Comma-separated searchable fields}
                             {--force : Overwrite existing files}
-                            {--dry-run : Preview files without writing them}';
+                            {--dry-run : Preview files without writing them}
+                            {--volt : Generate single-file Livewire components with file-based routing}';
 
     protected $description = 'Generate full CRUD with Livewire v4 components';
 
@@ -47,9 +49,10 @@ class CrudGenerateCommand extends Command
         $skip = is_string($this->option('skip')) ? $this->option('skip') : null;
         $force = (bool) $this->option('force');
         $dryRun = (bool) $this->option('dry-run');
+        $volt = (bool) $this->option('volt');
 
         if ($yamlFile) {
-            return $this->handleYaml($yamlFile, $only, $skip, $force, $dryRun);
+            return $this->handleYaml($yamlFile, $only, $skip, $force, $dryRun, $volt);
         }
 
         if (empty($model)) {
@@ -85,12 +88,12 @@ class CrudGenerateCommand extends Command
 
         $softDeletes = (bool) $this->option('soft-delete');
 
-        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes);
+        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes, $volt);
 
-        return $this->runGenerators($model, $only, $skip, $dryRun);
+        return $this->runGenerators($model, $only, $skip, $dryRun, $volt);
     }
 
-    protected function handleYaml(string $yamlFile, ?string $only, ?string $skip, bool $force, bool $dryRun): int
+    protected function handleYaml(string $yamlFile, ?string $only, ?string $skip, bool $force, bool $dryRun, bool $volt): int
     {
         if (! file_exists($yamlFile)) {
             $this->error("YAML file not found: {$yamlFile}");
@@ -150,10 +153,11 @@ class CrudGenerateCommand extends Command
         $relationshipParser->setRelationships($yamlParser->getRelationships());
 
         $softDeletes = $yamlParser->hasSoftDeletes();
+        $volt = $volt || $yamlParser->hasVolt();
 
-        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes);
+        $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes, $volt);
 
-        return $this->runGenerators($model, $only, $skip, $dryRun);
+        return $this->runGenerators($model, $only, $skip, $dryRun, $volt);
     }
 
     protected function validateModelName(string $model): bool
@@ -188,7 +192,7 @@ class CrudGenerateCommand extends Command
         return true;
     }
 
-    protected function registerGenerators(FieldParser $fieldParser, RelationshipParser $relationshipParser, bool $force, bool $dryRun, bool $softDeletes): void
+    protected function registerGenerators(FieldParser $fieldParser, RelationshipParser $relationshipParser, bool $force, bool $dryRun, bool $softDeletes, bool $volt = false): void
     {
         $files = new Filesystem;
         $options = [
@@ -197,21 +201,32 @@ class CrudGenerateCommand extends Command
             'softDeletes' => $softDeletes,
         ];
 
-        $this->generators = [
-            new ModelGenerator($files, $fieldParser, $options, $relationshipParser),
-            new MigrationGenerator($files, $fieldParser, $options, $relationshipParser),
-            new ControllerGenerator($files, $fieldParser, $options, $relationshipParser),
-            new FormRequestGenerator($files, $fieldParser, $options, $relationshipParser),
-            new PolicyGenerator($files, $fieldParser, $options, $relationshipParser),
-            new LivewireComponentGenerator($files, $fieldParser, $options, $relationshipParser),
-            new LivewireViewGenerator($files, $fieldParser, $options, $relationshipParser),
-            new RouteGenerator($files, $fieldParser, $options, $relationshipParser),
-            new FactoryGenerator($files, $fieldParser, $options, $relationshipParser),
-            new SeederGenerator($files, $fieldParser, $options, $relationshipParser),
-        ];
+        if ($volt) {
+            $this->generators = [
+                new ModelGenerator($files, $fieldParser, $options, $relationshipParser),
+                new MigrationGenerator($files, $fieldParser, $options, $relationshipParser),
+                new PolicyGenerator($files, $fieldParser, $options, $relationshipParser),
+                new VoltLivewireGenerator($files, $fieldParser, $options, $relationshipParser),
+                new FactoryGenerator($files, $fieldParser, $options, $relationshipParser),
+                new SeederGenerator($files, $fieldParser, $options, $relationshipParser),
+            ];
+        } else {
+            $this->generators = [
+                new ModelGenerator($files, $fieldParser, $options, $relationshipParser),
+                new MigrationGenerator($files, $fieldParser, $options, $relationshipParser),
+                new ControllerGenerator($files, $fieldParser, $options, $relationshipParser),
+                new FormRequestGenerator($files, $fieldParser, $options, $relationshipParser),
+                new PolicyGenerator($files, $fieldParser, $options, $relationshipParser),
+                new LivewireComponentGenerator($files, $fieldParser, $options, $relationshipParser),
+                new LivewireViewGenerator($files, $fieldParser, $options, $relationshipParser),
+                new RouteGenerator($files, $fieldParser, $options, $relationshipParser),
+                new FactoryGenerator($files, $fieldParser, $options, $relationshipParser),
+                new SeederGenerator($files, $fieldParser, $options, $relationshipParser),
+            ];
+        }
     }
 
-    protected function runGenerators(string $model, ?string $only, ?string $skip, bool $dryRun): int
+    protected function runGenerators(string $model, ?string $only, ?string $skip, bool $dryRun, bool $volt = false): int
     {
         $onlyTypes = $only ? explode(',', $only) : null;
         $skipTypes = $skip ? explode(',', $skip) : [];
@@ -255,7 +270,13 @@ class CrudGenerateCommand extends Command
         $this->info("\nNext steps:");
         $this->line('  1. Run: php artisan migrate');
         $this->line('  2. Ensure you have a layout at resources/views/components/layouts/app.blade.php');
-        $this->line("  3. Visit: /{$resource}");
+
+        if ($volt) {
+            $this->line("  3. Visit: /{$resource}");
+            $this->line('  4. Routes are auto-discovered from resources/views/pages/');
+        } else {
+            $this->line("  3. Visit: /{$resource}");
+        }
 
         return self::SUCCESS;
     }

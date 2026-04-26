@@ -1,0 +1,62 @@
+<?php
+
+use Livewire\Component;
+use Livewire\Attributes\{Layout, Title, Validate};
+use {{ modelNamespace }}\{{ model }};
+{{ uses }}
+
+new
+#[Layout('components.layouts.app')]
+#[Title('{{ title }}')]
+class extends Component
+{
+    {{ traits }}
+    public {{ model }} ${{ modelVar }};
+    {{ properties }}
+
+    public function mount({{ model }} ${{ modelVar }}): void
+    {
+        {{ fillProperties }}
+    }
+
+    public function update(): void
+    {
+        $validated = $this->validate();
+
+        {{ fileStorage }}
+
+        $this->{{ modelVar }}->update($validated);
+
+        {{ syncRelationships }}
+
+        session()->flash('success', '{{ model }} updated successfully.');
+        $this->redirectRoute('{{ route }}.index');
+    }
+
+    {{ extraMethods }}
+};
+?>
+
+<article>
+    <header>
+        <nav aria-label="breadcrumb">
+            <ul>
+                <li><a href="{{ route }}">{{ pluralTitle }}</a></li>
+                <li>Edit</li>
+            </ul>
+        </nav>
+        <h1>Edit {{ title }}</h1>
+    </header>
+
+    <form wire:submit="update">
+        @csrf
+        <fieldset>
+            {{ formFields }}
+        </fieldset>
+
+        <footer class="grid">
+            <button type="submit">Update</button>
+            <a href="{{ route }}" class="outline secondary" role="button">Cancel</a>
+        </footer>
+    </form>
+</article>

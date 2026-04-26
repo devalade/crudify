@@ -99,4 +99,9 @@ class YamlParser
     {
         return $this->data['options']['soft_deletes'] ?? false;
     }
+
+    public function hasVolt(): bool
+    {
+        return $this->data['options']['volt'] ?? false;
+    }
 }

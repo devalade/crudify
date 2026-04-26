@@ -1,0 +1,119 @@
+<?php
+
+use Livewire\Component;
+use Livewire\WithPagination;
+use Livewire\Attributes\{Layout, Title};
+use {{ modelNamespace }}\{{ model }};
+
+new
+#[Layout('components.layouts.app')]
+#[Title('{{ title }}')]
+class extends Component
+{
+    use WithPagination;
+
+    public string $search = '';
+    public string $sortField = 'id';
+    public string $sortDirection = 'desc';
+    public int $perPage = 10;
+
+    {{ searchables }}
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+    }
+
+    public function delete(int $id): void
+    {
+        {{ model }}::findOrFail($id)->delete();
+        session()->flash('success', '{{ model }} deleted successfully.');
+    }
+
+    public function render()
+    {
+        return view('pages.{{ viewPath }}.index', [
+            '{{ models }}' => {{ model }}::query(){{ with }}
+                ->when($this->search, fn($query) => $query->where(function($q) {
+                    {{ searchConditions }}
+                }))
+                ->orderBy($this->sortField, $this->sortDirection)
+                ->paginate($this->perPage),
+        ]);
+    }
+};
+?>
+
+<article>
+    <header class="grid" style="align-items: center;">
+        <h1>{{ title }}</h1>
+        <div>
+            <a href="{{ route }}" role="button">Create New</a>
+        </div>
+    </header>
+
+    <fieldset role="group">
+        <input
+            type="search"
+            wire:model.live.debounce.300ms="search"
+            placeholder="Search..."
+        />
+        <select wire:model.live="perPage">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </fieldset>
+
+    <figure>
+        <table>
+            <thead>
+                <tr>
+                    {{ headers }}
+                    <th style="width: 1px; white-space: nowrap;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse(${{ models }} as ${{ modelVar }})
+                    <tr>
+                        {{ rowContent }}
+                        <td style="width: 1px; white-space: nowrap;">
+                            <div style="display: flex; gap: 0.25rem; align-items: stretch;">
+                                <a href="{{ route('{{ routeName }}.show', ${{ modelVar }}) }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; margin: 0; display: inline-flex; align-items: center; justify-content: center;" title="View">[V]</a>
+                                <a href="{{ route('{{ routeName }}.edit', ${{ modelVar }}) }}" role="button" class="outline" style="padding: 0.25rem 0.5rem; margin: 0; display: inline-flex; align-items: center; justify-content: center;" title="Edit">[E]</a>
+                                <button
+                                    wire:click="delete({{ ${{ modelVar }}->id }})"
+                                    wire:confirm="Are you sure you want to delete this {{ titleSingular }}?"
+                                    class="outline secondary"
+                                    style="padding: 0.25rem 0.5rem; margin: 0;"
+                                    title="Delete"
+                                >
+                                    [D]
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="{{ colspan }}" class="text-center">
+                            <em>No {{ title }} found.</em>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </figure>
+
+    {{ ${{ models }}->links() }}
+</article>

@@ -1,0 +1,55 @@
+<?php
+
+use Livewire\Component;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
+use Livewire\Attributes\Validate;
+use {{ modelNamespace }}\{{ model }};
+
+new
+#[Layout('components.layouts.app')]
+#[Title('Create {{ titleSingular }}')]
+class extends Component
+{
+    {{ validateAttributes }}
+
+    public function save(): void
+    {
+        $this->validate();
+
+        {{ model }}::create($this->all());
+
+        session()->flash('success', '{{ titleSingular }} created successfully.');
+        $this->redirect(route('{{ routeName }}.index'), navigate: true);
+    }
+
+    public function render()
+    {
+        return view('pages.{{ viewPath }}.create');
+    }
+};
+?>
+
+<article>
+    <header>
+        <nav aria-label="breadcrumb">
+            <ul>
+                <li><a href="{{ route }}">{{ pluralTitle }}</a></li>
+                <li>Create</li>
+            </ul>
+        </nav>
+        <h1>Create {{ title }}</h1>
+    </header>
+
+    <form wire:submit="save">
+        @csrf
+        <fieldset>
+            {{ formFields }}
+        </fieldset>
+
+        <footer class="grid">
+            <button type="submit">Create</button>
+            <a href="{{ route }}" class="outline secondary" role="button">Cancel</a>
+        </footer>
+    </form>
+</article>
