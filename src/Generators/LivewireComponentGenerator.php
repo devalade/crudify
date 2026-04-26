@@ -34,6 +34,17 @@ class LivewireComponentGenerator extends BaseGenerator
 
         $fields = $this->fieldParser->getFields();
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
+        $sortableFields = collect(['id'])
+            ->merge(
+                collect($fields)
+                    ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))
+                    ->take(5)
+                    ->pluck('name')
+            )
+            ->unique()
+            ->values()
+            ->map(fn ($field) => "'{$field}'")
+            ->implode(', ');
 
         $searchablesProps = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
 
@@ -48,6 +59,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
         $stub = str_replace('{{ searchables }}', $searchablesProps ? "\n    {$searchablesProps}\n" : '', $stub);
+        $stub = str_replace('{{ sortableFields }}', "[{$sortableFields}]", $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search conditions', $stub);
         $stub = str_replace('{{ with }}', $with ?: '', $stub);
         $stub = str_replace('{{ models }}', $models, $stub);

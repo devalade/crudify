@@ -35,6 +35,12 @@ class VoltLivewireGenerator extends BaseGenerator
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
+        $sortableFields = collect(['id'])
+            ->merge($displayFields->pluck('name'))
+            ->unique()
+            ->values()
+            ->map(fn ($field) => "'{$field}'")
+            ->implode(', ');
         $headers = $displayFields->map(fn ($f) => "<th wire:click=\"sortBy('{$f['name']}')\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</th>")->implode("\n                ");
         $rowContent = $displayFields->map(fn ($f) => "<td>{{ \${$modelVar}->{$f['name']} }}</td>")->implode("\n                ");
         $colspan = $displayFields->count() + 2;
@@ -47,6 +53,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
         $stub = str_replace('{{ searchables }}', $searchProperties, $stub);
+        $stub = str_replace('{{ sortableFields }}', "[{$sortableFields}]", $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search', $stub);
         $stub = str_replace('{{ with }}', $with ?: '', $stub);
         $stub = str_replace('{{ headers }}', $headers, $stub);

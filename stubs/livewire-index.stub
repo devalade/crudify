@@ -18,6 +18,7 @@ class {{ class }} extends Component
     public string $sortField = 'id';
     public string $sortDirection = 'desc';
     public int $perPage = 10;
+    protected array $sortable = {{ sortableFields }};
 
     {{ searchables }}
 
@@ -26,8 +27,19 @@ class {{ class }} extends Component
         $this->resetPage();
     }
 
+    public function updatingPerPage(): void
+    {
+        $this->resetPage();
+    }
+
     public function sortBy(string $field): void
     {
+        if (! in_array($field, $this->sortable, true)) {
+            return;
+        }
+
+        $this->resetPage();
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -42,6 +54,16 @@ class {{ class }} extends Component
         session()->flash('success', '{{ model }} deleted successfully.');
     }
 
+    protected function getSortField(): string
+    {
+        return in_array($this->sortField, $this->sortable, true) ? $this->sortField : 'id';
+    }
+
+    protected function getSortDirection(): string
+    {
+        return $this->sortDirection === 'asc' ? 'asc' : 'desc';
+    }
+
     public function render()
     {
         return view('livewire.pages.{{ viewPath }}.index', [
@@ -49,7 +71,7 @@ class {{ class }} extends Component
                 ->when($this->search, fn($query) => $query->where(function($q) {
                     {{ searchConditions }}
                 }))
-                ->orderBy($this->sortField, $this->sortDirection)
+                ->orderBy($this->getSortField(), $this->getSortDirection())
                 ->paginate($this->perPage),
         ]);
     }
