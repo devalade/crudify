@@ -41,6 +41,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $stub = $this->getStub('volt-index');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
@@ -92,6 +93,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $stub = $this->getStub('volt-create');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ pluralTitle }}', $pluralBase, $stub);
         $stub = str_replace('{{ properties }}', $allProperties, $stub);
@@ -140,6 +142,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $stub = $this->getStub('volt-edit');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ pluralTitle }}', $pluralBase, $stub);
@@ -165,6 +168,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $stub = $this->getStub('volt-show');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ details }}', $details, $stub);
