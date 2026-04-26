@@ -3,7 +3,8 @@
 namespace {{ namespace }};
 
 use Livewire\Component;
-use Livewire\Attributes\{Layout, Title};
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use {{ modelNamespace }}\{{ model }};
 
 #[Layout('components.layouts.app')]
