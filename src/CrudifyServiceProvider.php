@@ -93,9 +93,9 @@ class CrudifyServiceProvider extends ServiceProvider
                     continue;
                 }
                 // @phpstan-ignore-next-line livewire() is provided by livewire/volt package when installed
-                Route::livewire($fullRoutePath, $sfcComponent)->name($routeName);
+                Route::livewire($fullRoutePath, $sfcComponent)->name($routeName)->middleware('web');
             } else {
-                Route::get($fullRoutePath, $phpComponent)->name($routeName);
+                Route::get($fullRoutePath, $phpComponent)->name($routeName)->middleware('web');
             }
             $added = true;
         }
