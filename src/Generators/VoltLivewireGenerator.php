@@ -100,7 +100,7 @@ class VoltLivewireGenerator extends BaseGenerator
                     return $validate."\n    public $".$f['name'].';';
                 }
 
-                return $validate."\n    public {$this->getPropertyType($f['type'])} \${$f['name']} = '';";
+                return $validate."\n    public {$this->getPropertyType($f['type'])} \${$f['name']} = {$this->getDefaultValue($f['type'])};";
             })
             ->implode("\n    ");
 
@@ -294,6 +294,15 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
             'boolean' => 'bool',
             'integer', 'bigint' => 'int',
             default => 'string',
+        };
+    }
+
+    protected function getDefaultValue(string $type): string
+    {
+        return match ($type) {
+            'boolean' => 'false',
+            'integer', 'bigint' => '0',
+            default => "''",
         };
     }
 
