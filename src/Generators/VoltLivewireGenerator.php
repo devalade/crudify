@@ -35,7 +35,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
-        $headers = $displayFields->map(fn ($f) => "<th wire:click=\"sortBy('{$f['name']})\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}) @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</th>")->implode("\n                ");
+        $headers = $displayFields->map(fn ($f) => "<th wire:click=\"sortBy('{$f['name']}')\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</th>")->implode("\n                ");
         $rowContent = $displayFields->map(fn ($f) => "<td>{{ \${$modelVar}->{$f['name']} }}</td>")->implode("\n                ");
         $colspan = $displayFields->count() + 2;
         $with = $this->getWithClause();
