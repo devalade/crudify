@@ -22,9 +22,8 @@ class RouteGenerator extends BaseGenerator
         $routePath = base_path('routes/web.php');
         $existingContent = '';
 
-        if (file_exists($routePath)) {
-            $content = file_get_contents($routePath);
-            $existingContent = $content !== false ? $content : '';
+        if ($this->files->exists($routePath)) {
+            $existingContent = $this->files->get($routePath);
         }
 
         $marker = "// CRUDify Routes: {$resource}";
@@ -35,7 +34,7 @@ class RouteGenerator extends BaseGenerator
 
         $output = "\n{$marker}\n".trim($stub)."\n// End CRUDify Routes: {$resource}\n";
 
-        file_put_contents($routePath, $output, FILE_APPEND);
+        $this->files->append($routePath, $output);
 
         return [$routePath];
     }

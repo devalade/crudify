@@ -297,3 +297,76 @@ it('generates a seeder', function () {
     expect($content)->toContain('class PostSeeder extends Seeder');
     expect($content)->toContain('Post::factory()->count(10)->create();');
 });
+
+it('generates form requests with mime type validation for file uploads', function () {
+    $parser = new FieldParser;
+    $parser->parse('photo:image,attachment:file,gallery:image:multiple,docs:file:multiple');
+
+    $generator = new FormRequestGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $storeContent = file_get_contents($paths[0]);
+
+    expect($storeContent)->toContain("'mimes:jpeg,png,jpg,gif,webp,svg,avif'");
+    expect($storeContent)->toContain("'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx'");
+    expect($storeContent)->toContain("'gallery.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp,svg,avif', 'max:2048']");
+    expect($storeContent)->toContain("'docs.*' => ['file', 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx', 'max:2048']");
+});
+
+it('generates livewire edit component with file deletion logic', function () {
+    $parser = new FieldParser;
+    $parser->parse('photo:image,attachment:file');
+
+    $generator = new LivewireComponentGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+
+    expect($editContent)->toContain("Storage::disk('public')->delete(\$this->post->photo)");
+    expect($editContent)->toContain("Storage::disk('public')->delete(\$this->post->attachment)");
+});
+
+it('generates livewire edit component with multiple file removal methods', function () {
+    $parser = new FieldParser;
+    $parser->parse('gallery:image:multiple,docs:file:multiple');
+
+    $generator = new LivewireComponentGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+
+    expect($editContent)->toContain('public array $galleryToRemove = []');
+    expect($editContent)->toContain('public array $docsToRemove = []');
+    expect($editContent)->toContain('public function removeGalleryFile(string $path): void');
+    expect($editContent)->toContain('public function removeDocsFile(string $path): void');
+    expect($editContent)->toContain("Storage::disk('public')->delete(\$path)");
+    expect($editContent)->toContain('use Illuminate\Support\Facades\Storage;');
+});
+
+it('generates livewire edit view with remove buttons for multiple files', function () {
+    $parser = new FieldParser;
+    $parser->parse('gallery:image:multiple');
+
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+
+    expect($editContent)->toContain('wire:click="removeGalleryFile');
+    expect($editContent)->toContain('@unless(in_array($path, $galleryToRemove))');
+});
+
+it('limits relationship options to prevent memory issues', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User');
+
+    $generator = new LivewireComponentGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    expect($createContent)->toContain('::limit(100)->get()');
+    expect($createContent)->not->toContain('::all()');
+});

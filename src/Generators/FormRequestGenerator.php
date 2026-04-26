@@ -97,6 +97,7 @@ class FormRequestGenerator extends BaseGenerator
                     $ruleSet[] = 'array';
                 } else {
                     $ruleSet[] = 'image';
+                    $ruleSet[] = 'mimes:jpeg,png,jpg,gif,webp,svg,avif';
                     $ruleSet[] = 'max:2048';
                 }
             }
@@ -106,6 +107,7 @@ class FormRequestGenerator extends BaseGenerator
                     $ruleSet[] = 'array';
                 } else {
                     $ruleSet[] = 'file';
+                    $ruleSet[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
                     $ruleSet[] = 'max:2048';
                 }
             }
@@ -139,8 +141,11 @@ class FormRequestGenerator extends BaseGenerator
 
             // Add validation for individual items in multiple file uploads
             if (($field['type'] === 'image' || $field['type'] === 'file') && ($field['multiple'] ?? false)) {
-                $itemRule = $field['type'] === 'image' ? "'image'" : "'file'";
-                $rules[] = "'{$field['name']}.*' => [{$itemRule}, 'max:2048']";
+                if ($field['type'] === 'image') {
+                    $rules[] = "'{$field['name']}.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp,svg,avif', 'max:2048']";
+                } else {
+                    $rules[] = "'{$field['name']}.*' => ['file', 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx', 'max:2048']";
+                }
             }
         }
 

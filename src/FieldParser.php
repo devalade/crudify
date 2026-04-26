@@ -29,7 +29,7 @@ class FieldParser
             }
 
             // Extract foreign:table before splitting by colon
-            if (preg_match('/foreign:([^,]+)/', $fieldString, $matches)) {
+            if (preg_match('/foreign:([^:,]+)/', $fieldString, $matches)) {
                 $foreignTable = $matches[1];
                 $fieldString = str_replace($matches[0], '', $fieldString);
                 $fieldString = rtrim($fieldString, ':');

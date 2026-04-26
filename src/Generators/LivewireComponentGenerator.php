@@ -109,10 +109,10 @@ class LivewireComponentGenerator extends BaseGenerator
             ->filter(fn ($r) => in_array($r['type'], ['belongsTo', 'belongsToMany']))
             ->map(function ($r) {
                 if ($r['type'] === 'belongsTo') {
-                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::limit(100)->get();';
                 }
 
-                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::limit(100)->get();';
             })
             ->implode("\n        ");
 
@@ -191,7 +191,7 @@ class LivewireComponentGenerator extends BaseGenerator
                 $validate = $this->getValidationAttribute($f, true);
                 if (in_array($f['type'], ['image', 'file'])) {
                     if ($f['multiple'] ?? false) {
-                        return $validate."\n    public $".$f['name'].' = [];';
+                        return $validate."\n    public $".$f['name'].' = [];'."\n    public array $".$f['name'].'ToRemove = [];';
                     }
 
                     return $validate."\n    public $".$f['name'].';';
@@ -243,10 +243,10 @@ class LivewireComponentGenerator extends BaseGenerator
             ->filter(fn ($r) => in_array($r['type'], ['belongsTo', 'belongsToMany']))
             ->map(function ($r) {
                 if ($r['type'] === 'belongsTo') {
-                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                    return '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::limit(100)->get();';
                 }
 
-                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::all();';
+                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \\App\\Models\\'.$r['model'].'::limit(100)->get();';
             })
             ->implode("\n        ");
 
@@ -256,6 +256,16 @@ class LivewireComponentGenerator extends BaseGenerator
 
         $fileStorage = $this->generateFileStorage($fields, $modelBase, $modelVar, true);
         $syncRelationships = $this->generateSyncRelationships($modelVar, true);
+        $extraMethods = $this->generateFileRemovalMethods($fields);
+
+        $uses = [];
+        if ($hasFiles) {
+            $uses[] = 'use Livewire\\WithFileUploads;';
+            if ($this->fieldParser->getMultipleFileFields()) {
+                $uses[] = 'use Illuminate\\Support\\Facades\\Storage;';
+            }
+        }
+        $usesStr = implode("\n", $uses);
 
         $stub = $this->getStub('livewire-edit');
         $stub = str_replace('{{ namespace }}', $namespace, $stub);
@@ -270,7 +280,8 @@ class LivewireComponentGenerator extends BaseGenerator
         $stub = str_replace('{{ viewPath }}', $viewPath, $stub);
         $stub = str_replace('{{ fileStorage }}', $fileStorage, $stub);
         $stub = str_replace('{{ syncRelationships }}', $syncRelationships, $stub);
-        $stub = str_replace('{{ uses }}', $hasFiles ? "\nuse Livewire\\WithFileUploads;" : '', $stub);
+        $stub = str_replace('{{ extraMethods }}', $extraMethods, $stub);
+        $stub = str_replace('{{ uses }}', $usesStr ? "\n".$usesStr : '', $stub);
         $stub = str_replace('{{ traits }}', $hasFiles ? "\n    use WithFileUploads;" : '', $stub);
 
         $this->createFile($path, $stub);
@@ -324,6 +335,32 @@ class LivewireComponentGenerator extends BaseGenerator
     /**
      * @param  array<int, array<string, mixed>>  $fields
      */
+    protected function generateFileRemovalMethods(array $fields): string
+    {
+        $multipleFileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']) && ($f['multiple'] ?? false));
+
+        if (empty($multipleFileFields)) {
+            return '';
+        }
+
+        $methods = [];
+        foreach ($multipleFileFields as $field) {
+            $name = $field['name'];
+            $methodName = 'remove'.Str::studly($name).'File';
+            $methods[] = <<<PHP
+    public function {$methodName}(string \$path): void
+    {
+        \$this->{$name}ToRemove[] = \$path;
+    }
+PHP;
+        }
+
+        return "\n".implode("\n\n", $methods);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $fields
+     */
     protected function generateFileStorage(array $fields, string $modelBase, string $modelVar, bool $isEdit = false): string
     {
         $fileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']));
@@ -340,25 +377,40 @@ class LivewireComponentGenerator extends BaseGenerator
             $isMultiple = $field['multiple'] ?? false;
 
             if ($isMultiple) {
-                $lines[] = "if (!empty(\$this->{$name})) {";
-                $lines[] = '    $paths = [];';
-                $lines[] = "    foreach (\$this->{$name} as \$file) {";
-                $lines[] = "        \$paths[] = \$file->store('{$table}', 'public');";
-                $lines[] = '    }';
-
                 if ($isEdit) {
-                    $lines[] = "    if (!empty(\$this->{$modelVar}->{$name})) {";
-                    $lines[] = "        \$existing = is_array(\$this->{$modelVar}->{$name}) ? \$this->{$modelVar}->{$name} : json_decode(\$this->{$modelVar}->{$name}, true) ?? [];";
-                    $lines[] = '        $paths = array_merge($existing, $paths);';
+                    $lines[] = "\$existing{$name} = is_array(\$this->{$modelVar}->{$name}) ? \$this->{$modelVar}->{$name} : json_decode(\$this->{$modelVar}->{$name}, true) ?? [];";
+                    $lines[] = "\$existing{$name} = array_diff(\$existing{$name}, \$this->{$name}ToRemove);";
+                    $lines[] = "foreach (\$this->{$name}ToRemove as \$path) {";
+                    $lines[] = "    Storage::disk('public')->delete(\$path);";
+                    $lines[] = '}';
+                    $lines[] = "if (!empty(\$this->{$name})) {";
+                    $lines[] = "    foreach (\$this->{$name} as \$file) {";
+                    $lines[] = "        \$existing{$name}[] = \$file->store('{$table}', 'public');";
                     $lines[] = '    }';
+                    $lines[] = '}';
+                    $lines[] = "\$validated['{$name}'] = \$existing{$name};";
+                } else {
+                    $lines[] = "if (!empty(\$this->{$name})) {";
+                    $lines[] = '    $paths = [];';
+                    $lines[] = "    foreach (\$this->{$name} as \$file) {";
+                    $lines[] = "        \$paths[] = \$file->store('{$table}', 'public');";
+                    $lines[] = '    }';
+                    $lines[] = "    \$validated['{$name}'] = \$paths;";
+                    $lines[] = '}';
                 }
-
-                $lines[] = "    \$validated['{$name}'] = \$paths;";
-                $lines[] = '}';
             } else {
-                $lines[] = "if (\$this->{$name}) {";
-                $lines[] = "    \$validated['{$name}'] = \$this->{$name}->store('{$table}', 'public');";
-                $lines[] = '}';
+                if ($isEdit) {
+                    $lines[] = "if (\$this->{$name}) {";
+                    $lines[] = "    if (\$this->{$modelVar}->{$name}) {";
+                    $lines[] = "        Storage::disk('public')->delete(\$this->{$modelVar}->{$name});";
+                    $lines[] = '    }';
+                    $lines[] = "    \$validated['{$name}'] = \$this->{$name}->store('{$table}', 'public');";
+                    $lines[] = '}';
+                } else {
+                    $lines[] = "if (\$this->{$name}) {";
+                    $lines[] = "    \$validated['{$name}'] = \$this->{$name}->store('{$table}', 'public');";
+                    $lines[] = '}';
+                }
             }
         }
 
@@ -399,6 +451,7 @@ class LivewireComponentGenerator extends BaseGenerator
                 $rules[] = 'array';
             } else {
                 $rules[] = 'image';
+                $rules[] = 'mimes:jpeg,png,jpg,gif,webp,svg,avif';
                 $rules[] = 'max:2048';
             }
         }
@@ -408,6 +461,7 @@ class LivewireComponentGenerator extends BaseGenerator
                 $rules[] = 'array';
             } else {
                 $rules[] = 'file';
+                $rules[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
                 $rules[] = 'max:2048';
             }
         }

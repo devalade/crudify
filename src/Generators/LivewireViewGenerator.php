@@ -276,18 +276,22 @@ BLADE;
         $preview = '';
         if ($isEdit) {
             if ($isMultiple) {
+                $methodName = 'remove'.Str::studly($name).'File';
                 $preview = <<<BLADE
 
             @if(!empty(\${$modelVar}->{$name}))
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
                     @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
-                        <div style="position: relative;">
-                            @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                                <img src="{{ asset('storage/' . \$path) }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;" />
-                            @else
-                                <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline" style="padding: 0.5rem;">{{ basename(\$path) }}</a>
-                            @endif
-                        </div>
+                        @unless(in_array(\$path, \${$name}ToRemove))
+                            <div style="position: relative;">
+                                @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                                    <img src="{{ asset('storage/' . \$path) }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;" />
+                                @else
+                                    <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline" style="padding: 0.5rem;">{{ basename(\$path) }}</a>
+                                @endif
+                                <button type="button" wire:click="{$methodName}('{{ \$path }}')" style="position: absolute; top: -6px; right: -6px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+                            </div>
+                        @endunless
                     @endforeach
                 </div>
             @endif

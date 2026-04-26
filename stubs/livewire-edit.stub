@@ -38,4 +38,6 @@ class {{ class }} extends Component
     {
         return view('livewire.pages.{{ viewPath }}.edit');
     }
+
+    {{ extraMethods }}
 }

@@ -44,6 +44,17 @@ it('parses foreign key fields', function () {
     expect($fields[0]['foreign_table'])->toBe('users');
 });
 
+it('parses nullable foreign key fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('user_id:foreign:users:nullable');
+
+    $fields = $parser->getFields();
+
+    expect($fields[0]['type'])->toBe('foreign');
+    expect($fields[0]['foreign_table'])->toBe('users');
+    expect($fields[0]['nullable'])->toBeTrue();
+});
+
 it('returns correct casts', function () {
     $parser = new FieldParser;
     $parser->parse('is_active:boolean,views:integer,price:float,published_at:datetime,meta:json');
