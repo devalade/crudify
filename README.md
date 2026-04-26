@@ -292,7 +292,7 @@ For a model named `Post`, Crudify generates:
 | `app/Livewire/Pages/Posts/Create.php` | Livewire create component with `#[Validate]` |
 | `app/Livewire/Pages/Posts/Edit.php` | Livewire edit component with `#[Validate]` |
 | `app/Livewire/Pages/Posts/Show.php` | Livewire show component |
-| `resources/views/livewire/pages/posts/*.blade.php` | Pico CSS-styled semantic HTML views |
+| `resources/views/livewire/pages/posts/*.blade.php` | Flux UI + Tailwind styled Blade views |
 | `routes/web.php` | Livewire v4 routes with fully-qualified class names |
 
 ### Livewire 4 Compatible
@@ -307,22 +307,23 @@ All generated components use Livewire 4 syntax:
 
 ## UI Framework
 
-Generated views use **Pico CSS** via CDN — a classless CSS framework. No Tailwind classes are used. The views use semantic HTML:
+Generated views use **Flux UI components** with **Tailwind CSS**. Generated Blade files include `flux:*` components plus Tailwind utility classes:
 
 ```html
-<article>
-  <header>
-    <nav aria-label="breadcrumb">...</nav>
-    <h1>Posts</h1>
-  </header>
-  <table>...</table>
-</article>
+<flux:card>
+  <flux:input wire:model.live="search" />
+  <flux:table>...</flux:table>
+</flux:card>
 ```
 
-Add Pico CSS to your layout:
+Install Flux in generated app:
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+composer require livewire/flux
+
+@fluxAppearance
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+@fluxScripts
 ```
 
 ---

@@ -294,7 +294,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ pluralTitle }}', $pluralBase, $stub);
         $stub = str_replace('{{ showFields }}', $details, $stub);
-        $stub = str_replace('{!! editRoute !!}', "<a href=\"{{ route('{$kebabModels}.edit', \${$modelVar}) }}\" role=\"button\">Edit</a>", $stub);
+        $stub = str_replace('{!! editRoute !!}', "<flux:button href=\"{{ route('{$kebabModels}.edit', \${$modelVar}) }}\" variant=\"primary\">Edit</flux:button>", $stub);
         $stub = str_replace('{{ titleSingular }}', $modelBase, $stub);
         $stub = str_replace('{{ route }}', '/'.$kebabModels, $stub);
         $stub = str_replace('{{ routeName }}', $kebabModels, $stub);
@@ -341,16 +341,16 @@ class VoltLivewireGenerator extends BaseGenerator
                     $accept = $f['type'] === 'image' ? 'accept="image/*"' : '';
                     $multipleAttr = $multiple ? ' multiple' : '';
 
-                    return "<label>\n                    {$label}\n                    <input type=\"file\" wire:model=\"{$f['name']}\"{$multipleAttr} {$accept} />\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ \$message }} @enderror</small>\n                </label>";
+                    return "<div class=\"space-y-2\">\n                    <flux:input type=\"file\" wire:model=\"{$f['name']}\" label=\"{$label}\"{$multipleAttr} {$accept} />\n                    @error('{$f['name']}') <flux:text class=\"text-red-500\">{{ \$message }}</flux:text> @enderror\n                </div>";
                 }
 
                 $input = match ($f['type']) {
-                    'boolean' => '<input type="checkbox" wire:model="'.$f['name'].'" />',
-                    'text' => '<textarea wire:model="'.$f['name'].'" rows="4"></textarea>',
-                    default => '<input type="text" wire:model="'.$f['name'].'" />',
+                    'boolean' => '<flux:checkbox wire:model="'.$f['name'].'" label="'.$label.'" />',
+                    'text' => '<flux:textarea wire:model="'.$f['name'].'" label="'.$label.'" rows="4"></flux:textarea>',
+                    default => '<flux:input type="text" wire:model="'.$f['name'].'" label="'.$label.'" />',
                 };
 
-                return "<label>\n                    {$label}\n                    {$input}\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ \$message }} @enderror</small>\n                </label>";
+                return "<div class=\"space-y-2\">\n                    {$input}\n                    @error('{$f['name']}') <flux:text class=\"text-red-500\">{{ \$message }}</flux:text> @enderror\n                </div>";
             })
             ->all();
 
@@ -379,7 +379,7 @@ class VoltLivewireGenerator extends BaseGenerator
             return $this->generateShowFileField($field, $label, $modelVar);
         }
 
-        return '<div><h6>'.$label.'</h6><p>@if($'.$modelVar.'->'.$name.') {{ $'.$modelVar.'->'.$name.' }} @else <em class="text-muted">—</em> @endif</p></div>';
+        return '<div class="space-y-2"><flux:subheading>'.$label.'</flux:subheading><flux:text>@if($'.$modelVar.'->'.$name.') {{ $'.$modelVar.'->'.$name.' }} @else <span class="text-zinc-400">—</span> @endif</flux:text></div>';
     }
 
     /**
@@ -391,19 +391,19 @@ class VoltLivewireGenerator extends BaseGenerator
 
         if ($field['multiple'] ?? false) {
             return <<<BLADE
-<div>
-        <h6>{$label}</h6>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+<div class="space-y-3">
+        <flux:subheading>{$label}</flux:subheading>
+        <div class="flex flex-wrap gap-3">
             @if(!empty(\${$modelVar}->{$name}))
                 @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
                     @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                        <img src="{{ asset('storage/' . \$path) }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                        <img src="{{ asset('storage/' . \$path) }}" class="h-24 w-24 rounded-xl object-cover" />
                     @else
-                        <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline">{{ basename(\$path) }}</a>
+                        <flux:button variant="ghost" href="{{ asset('storage/' . \$path) }}" target="_blank">{{ basename(\$path) }}</flux:button>
                     @endif
                 @endforeach
             @else
-                <em class="text-muted">—</em>
+                <span class="text-zinc-400">—</span>
             @endif
         </div>
     </div>
@@ -411,19 +411,19 @@ BLADE;
         }
 
         return <<<BLADE
-<div>
-        <h6>{$label}</h6>
-        <p>
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        <div>
             @if(\${$modelVar}->{$name})
                 @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                    <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" style="max-width: 300px; max-height: 200px; border-radius: 4px;" />
+                    <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" class="max-h-56 rounded-xl object-cover" />
                 @else
-                    <a href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank" class="outline">{{ basename(\${$modelVar}->{$name}) }}</a>
+                    <flux:button variant="ghost" href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank">{{ basename(\${$modelVar}->{$name}) }}</flux:button>
                 @endif
             @else
-                <em class="text-muted">—</em>
+                <span class="text-zinc-400">—</span>
             @endif
-        </p>
+        </div>
     </div>
 BLADE;
     }
@@ -437,15 +437,15 @@ BLADE;
         $name = $relationship['name'];
 
         return <<<BLADE
-<div>
-        <h6>{$label}</h6>
-        <p>
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        <flux:text>
             @if(\${$modelVar}->{$name})
                 {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}
             @else
-                <em class="text-muted">—</em>
+                <span class="text-zinc-400">—</span>
             @endif
-        </p>
+        </flux:text>
     </div>
 BLADE;
     }
@@ -459,19 +459,19 @@ BLADE;
         $name = Str::plural($relationship['name']);
 
         return <<<BLADE
-<div>
-        <h6>{$label}</h6>
-        <p>
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        <div>
             @if(\${$modelVar}->{$name}->isNotEmpty())
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <div class="flex flex-wrap gap-2">
                     @foreach(\${$modelVar}->{$name} as \$item)
-                        <span class="outline" style="padding: 0.25rem 0.5rem;">{{ \$item->name ?? \$item->id }}</span>
+                        <flux:badge>{{ \$item->name ?? \$item->id }}</flux:badge>
                     @endforeach
                 </div>
             @else
-                <em class="text-muted">—</em>
+                <span class="text-zinc-400">—</span>
             @endif
-        </p>
+        </div>
     </div>
 BLADE;
     }
@@ -486,16 +486,15 @@ BLADE;
         $relatedVar = $this->camelCase($relationship['model']);
 
         return <<<BLADE
-<label>
-                    {$label}
-                    <select wire:model="{$foreignKey}">
+<div class="space-y-2">
+                    <flux:select wire:model="{$foreignKey}" label="{$label}">
                         <option value="">Select {$label}</option>
                         @foreach(\${$relatedVar}Options as \$option)
                             <option value="{{ \$option->id }}">{{ \$option->name ?? \$option->id }}</option>
                         @endforeach
-                    </select>
-                    <small class="text-red-500">@error('{$foreignKey}') {{ \$message }} @enderror</small>
-                </label>
+                    </flux:select>
+                    @error('{$foreignKey}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+                </div>
 BLADE;
     }
 
@@ -509,18 +508,17 @@ BLADE;
         $optionsVar = Str::camel(Str::plural($relationship['name'])).'Options';
 
         return <<<BLADE
-<fieldset>
-                    <legend>{$label}</legend>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+<div class="space-y-3">
+                    <flux:field>
+                        <flux:label>{$label}</flux:label>
+                    </flux:field>
+                    <div class="flex flex-wrap gap-3">
                         @foreach(\${$optionsVar} as \$option)
-                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; width: auto;">
-                                <input type="checkbox" wire:model="{$propertyName}" value="{{ \$option->id }}" />
-                                {{ \$option->name ?? \$option->id }}
-                            </label>
+                            <flux:checkbox wire:model="{$propertyName}" value="{{ \$option->id }}" label="{{ \$option->name ?? \$option->id }}" />
                         @endforeach
                     </div>
-                    <small class="text-red-500">@error('{$propertyName}') {{ \$message }} @enderror</small>
-                </fieldset>
+                    @error('{$propertyName}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+                </div>
 BLADE;
     }
 

@@ -27,31 +27,29 @@ class extends Component
 };
 ?>
 
-<article>
-    <header>
-        <nav aria-label="breadcrumb">
-            <ul>
-                <li><a href="{{ route }}">{{ pluralTitle }}</a></li>
-                <li>{{ title }}</li>
-            </ul>
-        </nav>
-        <hgroup>
-            <h1>{{ title }}</h1>
-            <p>Details and information</p>
-        </hgroup>
-    </header>
+<div class="mx-auto max-w-4xl space-y-6">
+    <div class="space-y-2">
+        <flux:text>
+            <a href="{{ route }}" class="text-zinc-500 hover:text-zinc-800 dark:hover:text-white">{{ pluralTitle }}</a>
+            / {{ title }}
+        </flux:text>
+        <flux:heading size="xl">{{ title }}</flux:heading>
+        <flux:text>Details and information.</flux:text>
+    </div>
 
-    {{ showFields }}
+    <flux:card class="space-y-6">
+        {{ showFields }}
+    </flux:card>
 
-    <footer class="grid">
+    <div class="flex flex-col gap-3 sm:flex-row sm:justify-end">
         {!! editRoute !!}
-        <button
+        <flux:button
+            variant="danger"
             wire:click="delete"
             wire:confirm="Are you sure you want to delete this {{ titleSingular }}?"
-            class="secondary"
         >
             Delete
-        </button>
-        <a href="{{ route }}" class="outline" role="button">Back to List</a>
-    </footer>
-</article>
+        </flux:button>
+        <flux:button href="{{ route }}" variant="ghost">Back to List</flux:button>
+    </div>
+</div>

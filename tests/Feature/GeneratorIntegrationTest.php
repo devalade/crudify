@@ -413,9 +413,9 @@ it('generates volt show view with correct details structure', function () {
     $paths = $generator->generate('Post');
 
     $showContent = file_get_contents($paths[3]);
-    expect($showContent)->toContain('<h6>Title</h6>');
+    expect($showContent)->toContain('<flux:subheading>Title</flux:subheading>');
     expect($showContent)->toContain('{{ $post->title }}');
-    expect($showContent)->toContain('<h6>Body</h6>');
+    expect($showContent)->toContain('<flux:subheading>Body</flux:subheading>');
     expect($showContent)->toContain('{{ $post->body }}');
     expect($showContent)->not->toContain('{{ details }}');
     expect($showContent)->not->toContain('{{ pluralTitle }}');
@@ -552,7 +552,7 @@ it('generates volt edit and show redirects using named routes', function () {
     expect($editContent)->not->toContain('/posts.index');
     expect($showContent)->not->toContain('/posts.index');
     expect($showContent)->toContain('posts.edit');
-    expect($showContent)->toContain('role="button">Edit</a>');
+    expect($showContent)->toContain('<flux:button href="{{ route(\'posts.edit\', $post) }}" variant="primary">Edit</flux:button>');
 });
 
 it('generates volt relationship form fields', function () {
@@ -568,11 +568,11 @@ it('generates volt relationship form fields', function () {
     $createContent = file_get_contents($paths[1]);
     $editContent = file_get_contents($paths[2]);
 
-    expect($createContent)->toContain('<select wire:model="user_id">');
+    expect($createContent)->toContain('<flux:select wire:model="user_id" label="User">');
     expect($createContent)->toContain('@foreach($userOptions as $option)');
     expect($createContent)->toContain('wire:model="selectedTagsIds"');
     expect($createContent)->not->toContain('<input type="text" wire:model="user_id" />');
-    expect($editContent)->toContain('<select wire:model="user_id">');
+    expect($editContent)->toContain('<flux:select wire:model="user_id" label="User">');
     expect($editContent)->toContain('wire:model="selectedTagsIds"');
     expect($editContent)->not->toContain('<input type="text" wire:model="user_id" />');
 });

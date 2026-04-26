@@ -38,39 +38,39 @@ class LivewireViewGenerator extends BaseGenerator
         $belongsToRels = collect($this->getRelationships())->filter(fn ($r) => $r['type'] === 'belongsTo');
         $belongsToManyRels = collect($this->getRelationships())->filter(fn ($r) => $r['type'] === 'belongsToMany');
 
-        $headers = $displayFields->map(fn ($f) => "<th wire:click=\"sortBy('{$f['name']}')\">\n                            <span style=\"cursor: pointer;\">".Str::title(str_replace('_', ' ', $f['name'])).' '."@if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</span>\n                        </th>")->implode("\n                    ");
+        $headers = $displayFields->map(fn ($f) => "<flux:table.column wire:click=\"sortBy('{$f['name']}')\" class=\"cursor-pointer\">\n                            ".Str::title(str_replace('_', ' ', $f['name'])).' '."@if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') ↑ @else ↓ @endif @endif\n                        </flux:table.column>")->implode("\n            ");
 
         foreach ($belongsToRels as $rel) {
-            $headers .= "\n                    <th>".Str::title($rel['name']).'</th>';
+            $headers .= "\n            <flux:table.column>".Str::title($rel['name']).'</flux:table.column>';
         }
 
         foreach ($belongsToManyRels as $rel) {
-            $headers .= "\n                    <th>".Str::title(Str::plural($rel['name'])).'</th>';
+            $headers .= "\n            <flux:table.column>".Str::title(Str::plural($rel['name'])).'</flux:table.column>';
         }
 
         if ($hasImage) {
-            $headers .= "\n                    <th>Image</th>";
+            $headers .= "\n            <flux:table.column>Image</flux:table.column>";
         }
 
         $rowContent = $displayFields->map(function ($f) use ($modelVar) {
             $limit = $f['type'] === 'text' ? 50 : 30;
 
-            return "<td>\n                            @if(\${$modelVar}->{$f['name']})\n                                {{ Str::limit(\${$modelVar}->{$f['name']}, {$limit}) }}\n                            @else\n                                <em class=\"text-muted\">—</em>\n                            @endif\n                        </td>";
+            return "<flux:table.cell>\n                        @if(\${$modelVar}->{$f['name']})\n                            {{ Str::limit(\${$modelVar}->{$f['name']}, {$limit}) }}\n                        @else\n                            <span class=\"text-zinc-400\">—</span>\n                        @endif\n                    </flux:table.cell>";
         })->implode("\n                    ");
 
         foreach ($belongsToRels as $rel) {
             $name = $rel['name'];
-            $rowContent .= "\n                    <td>\n                            @if(\${$modelVar}->{$name})\n                                {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}\n                            @else\n                                <em class=\"text-muted\">—</em>\n                            @endif\n                        </td>";
+            $rowContent .= "\n                    <flux:table.cell>\n                        @if(\${$modelVar}->{$name})\n                            {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}\n                        @else\n                            <span class=\"text-zinc-400\">—</span>\n                        @endif\n                    </flux:table.cell>";
         }
 
         foreach ($belongsToManyRels as $rel) {
             $name = Str::plural($rel['name']);
-            $rowContent .= "\n                    <td style=\"width: 1px; white-space: nowrap;\">\n                            @if(\${$modelVar}->{$name}->isNotEmpty())\n                                <div style=\"display: flex; flex-wrap: wrap; gap: 0.25rem;\">\n                                    @foreach(\${$modelVar}->{$name} as \$item)\n                                        <span class=\"outline\" style=\"padding: 0.15rem 0.4rem; font-size: 0.75rem;\">{{ \$item->name ?? \$item->id }}</span>\n                                    @endforeach\n                                </div>\n                            @else\n                                <em class=\"text-muted\">—</em>\n                            @endif\n                        </td>";
+            $rowContent .= "\n                    <flux:table.cell>\n                        @if(\${$modelVar}->{$name}->isNotEmpty())\n                            <div class=\"flex flex-wrap gap-2\">\n                                @foreach(\${$modelVar}->{$name} as \$item)\n                                    <flux:badge size=\"sm\">{{ \$item->name ?? \$item->id }}</flux:badge>\n                                @endforeach\n                            </div>\n                        @else\n                            <span class=\"text-zinc-400\">—</span>\n                        @endif\n                    </flux:table.cell>";
         }
 
         if ($hasImage && $firstImage) {
             $name = $firstImage['name'];
-            $rowContent .= "\n                    <td style=\"width: 1px; white-space: nowrap;\">\n                            @if(\${$modelVar}->{$name})\n                                @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))\n                                    <img src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" style=\"width: 40px; height: 40px; object-fit: cover; border-radius: 4px;\" />\n                                @else\n                                    <a href=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" target=\"_blank\" class=\"outline\" style=\"padding: 0.25rem 0.5rem;\">File</a>\n                                @endif\n                            @else\n                                <em class=\"text-muted\">—</em>\n                            @endif\n                        </td>";
+            $rowContent .= "\n                    <flux:table.cell>\n                        @if(\${$modelVar}->{$name})\n                            @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))\n                                <img src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" class=\"h-10 w-10 rounded-lg object-cover\" />\n                            @else\n                                <flux:button size=\"sm\" variant=\"ghost\" href=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" target=\"_blank\">File</flux:button>\n                            @endif\n                        @else\n                            <span class=\"text-zinc-400\">—</span>\n                        @endif\n                    </flux:table.cell>";
         }
 
         $colspan = $displayFields->count() + $belongsToRels->count() + $belongsToManyRels->count() + ($hasImage ? 1 : 0) + 2;
@@ -215,20 +215,18 @@ class LivewireViewGenerator extends BaseGenerator
 
         if (in_array($field['type'], ['text'])) {
             return <<<BLADE
-<label>
-                {$label}
-                <textarea wire:model="{$name}" rows="4" placeholder="Enter {$label}..."></textarea>
-                <small class="text-red-500">@error('{$name}') {{ \$message }} @enderror</small>
-            </label>
+<div class="space-y-2">
+                <flux:textarea wire:model="{$name}" label="{$label}" rows="4" placeholder="Enter {$label}..." />
+                @error('{$name}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+            </div>
 BLADE;
         }
 
         if ($field['type'] === 'boolean') {
             return <<<BLADE
-<label>
-                <input type="checkbox" wire:model="{$name}" />
-                {$label}
-            </label>
+<div class="space-y-2">
+                <flux:checkbox wire:model="{$name}" label="{$label}" />
+            </div>
 BLADE;
         }
 
@@ -236,30 +234,27 @@ BLADE;
             $inputType = $field['type'] === 'datetime' ? 'datetime-local' : 'date';
 
             return <<<BLADE
-<label>
-                {$label}
-                <input type="{$inputType}" wire:model="{$name}" />
-                <small class="text-red-500">@error('{$name}') {{ \$message }} @enderror</small>
-            </label>
+<div class="space-y-2">
+                <flux:input type="{$inputType}" wire:model="{$name}" label="{$label}" />
+                @error('{$name}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+            </div>
 BLADE;
         }
 
         if (in_array($field['type'], ['integer', 'bigint', 'float', 'decimal'])) {
             return <<<BLADE
-<label>
-                {$label}
-                <input type="number" wire:model="{$name}" placeholder="Enter {$label}..." />
-                <small class="text-red-500">@error('{$name}') {{ \$message }} @enderror</small>
-            </label>
+<div class="space-y-2">
+                <flux:input type="number" wire:model="{$name}" label="{$label}" placeholder="Enter {$label}..." />
+                @error('{$name}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+            </div>
 BLADE;
         }
 
         return <<<BLADE
-<label>
-            {$label}
-            <input type="text" wire:model="{$name}" placeholder="Enter {$label}..." />
-            <small class="text-red-500">@error('{$name}') {{ \$message }} @enderror</small>
-        </label>
+<div class="space-y-2">
+            <flux:input type="text" wire:model="{$name}" label="{$label}" placeholder="Enter {$label}..." />
+            @error('{$name}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+        </div>
 BLADE;
     }
 
@@ -280,16 +275,16 @@ BLADE;
                 $preview = <<<BLADE
 
             @if(!empty(\${$modelVar}->{$name}))
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                <div class="mt-3 flex flex-wrap gap-3">
                     @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
                         @unless(in_array(\$path, \${$name}ToRemove))
-                            <div style="position: relative;">
+                            <div class="relative">
                                 @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                                    <img src="{{ asset('storage/' . \$path) }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;" />
+                                    <img src="{{ asset('storage/' . \$path) }}" class="h-20 w-20 rounded-xl object-cover" />
                                 @else
-                                    <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline" style="padding: 0.5rem;">{{ basename(\$path) }}</a>
+                                    <flux:button variant="ghost" href="{{ asset('storage/' . \$path) }}" target="_blank">{{ basename(\$path) }}</flux:button>
                                 @endif
-                                <button type="button" wire:click="{$methodName}('{{ \$path }}')" style="position: absolute; top: -6px; right: -6px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+                                <flux:button type="button" size="sm" variant="danger" wire:click="{$methodName}('{{ \$path }}')" class="absolute -right-2 -top-2 !rounded-full !px-2">×</flux:button>
                             </div>
                         @endunless
                     @endforeach
@@ -300,11 +295,11 @@ BLADE;
                 $preview = <<<BLADE
 
             @if(\${$modelVar}->{$name})
-                <div style="margin-top: 0.5rem;">
+                <div class="mt-3">
                     @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                        <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" style="max-width: 200px; max-height: 150px; border-radius: 4px;" />
+                        <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" class="max-h-40 rounded-xl object-cover" />
                     @else
-                        <a href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank" class="outline">{{ basename(\${$modelVar}->{$name}) }}</a>
+                        <flux:button variant="ghost" href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank">{{ basename(\${$modelVar}->{$name}) }}</flux:button>
                     @endif
                 </div>
             @endif
@@ -313,12 +308,11 @@ BLADE;
         }
 
         return <<<BLADE
-<label>
-            {$label}
-            <input type="file" wire:model="{$name}"{$multipleAttr} {$accept} />
-            <small class="text-red-500">@error('{$name}') {{ \$message }} @enderror</small>
+<div class="space-y-2">
+            <flux:input type="file" wire:model="{$name}" label="{$label}"{$multipleAttr} {$accept} />
+            @error('{$name}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
             {$preview}
-        </label>
+        </div>
 BLADE;
     }
 
@@ -333,16 +327,15 @@ BLADE;
         $relatedVar = $this->camelCase($relatedModel);
 
         return <<<BLADE
-<label>
-            {$label}
-            <select wire:model="{$foreignKey}">
+<div class="space-y-2">
+            <flux:select wire:model="{$foreignKey}" label="{$label}">
                 <option value="">Select {$label}</option>
                 @foreach(\${$relatedVar}Options as \$option)
                     <option value="{{ \$option->id }}">{{ \$option->name ?? \$option->id }}</option>
                 @endforeach
-            </select>
-            <small class="text-red-500">@error('{$foreignKey}') {{ \$message }} @enderror</small>
-        </label>
+            </flux:select>
+            @error('{$foreignKey}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+        </div>
 BLADE;
     }
 
@@ -356,18 +349,17 @@ BLADE;
         $optionsVar = Str::camel(Str::plural($relationship['name'])).'Options';
 
         return <<<BLADE
-<fieldset>
-            <legend>{$label}</legend>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+<div class="space-y-3">
+            <flux:field>
+                <flux:label>{$label}</flux:label>
+            </flux:field>
+            <div class="flex flex-wrap gap-3">
                 @foreach(\${$optionsVar} as \$option)
-                    <label style="display: inline-flex; align-items: center; gap: 0.4rem; width: auto;">
-                        <input type="checkbox" wire:model="{$propertyName}" value="{{ \$option->id }}" />
-                        {{ \$option->name ?? \$option->id }}
-                    </label>
+                    <flux:checkbox wire:model="{$propertyName}" value="{{ \$option->id }}" label="{{ \$option->name ?? \$option->id }}" />
                 @endforeach
             </div>
-            <small class="text-red-500">@error('{$propertyName}') {{ \$message }} @enderror</small>
-        </fieldset>
+            @error('{$propertyName}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
+        </div>
 BLADE;
     }
 
@@ -384,15 +376,15 @@ BLADE;
         }
 
         return <<<BLADE
-<div>
-                <h6>{$label}</h6>
-                <p>
+<div class="space-y-2">
+                <flux:subheading>{$label}</flux:subheading>
+                <flux:text>
                     @if(\${$modelVar}->{$name})
                         {{ \${$modelVar}->{$name} }}
                     @else
-                        <em class="text-muted">—</em>
+                        <span class="text-zinc-400">—</span>
                     @endif
-                </p>
+                </flux:text>
             </div>
 BLADE;
     }
@@ -407,19 +399,19 @@ BLADE;
 
         if ($isMultiple) {
             return <<<BLADE
-<div>
-                <h6>{$label}</h6>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+<div class="space-y-3">
+                <flux:subheading>{$label}</flux:subheading>
+                <div class="flex flex-wrap gap-3">
                     @if(!empty(\${$modelVar}->{$name}))
                         @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
                             @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                                <img src="{{ asset('storage/' . \$path) }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                                <img src="{{ asset('storage/' . \$path) }}" class="h-24 w-24 rounded-xl object-cover" />
                             @else
-                                <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline">{{ basename(\$path) }}</a>
+                                <flux:button variant="ghost" href="{{ asset('storage/' . \$path) }}" target="_blank">{{ basename(\$path) }}</flux:button>
                             @endif
                         @endforeach
                     @else
-                        <em class="text-muted">—</em>
+                        <span class="text-zinc-400">—</span>
                     @endif
                 </div>
             </div>
@@ -427,19 +419,19 @@ BLADE;
         }
 
         return <<<BLADE
-<div>
-                <h6>{$label}</h6>
-                <p>
+<div class="space-y-2">
+                <flux:subheading>{$label}</flux:subheading>
+                <div>
                     @if(\${$modelVar}->{$name})
                         @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
-                            <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" style="max-width: 300px; max-height: 200px; border-radius: 4px;" />
+                            <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" class="max-h-56 rounded-xl object-cover" />
                         @else
-                            <a href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank" class="outline">{{ basename(\${$modelVar}->{$name}) }}</a>
+                            <flux:button variant="ghost" href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank">{{ basename(\${$modelVar}->{$name}) }}</flux:button>
                         @endif
                     @else
-                        <em class="text-muted">—</em>
+                        <span class="text-zinc-400">—</span>
                     @endif
-                </p>
+                </div>
             </div>
 BLADE;
     }
@@ -453,15 +445,15 @@ BLADE;
         $name = $relationship['name'];
 
         return <<<BLADE
-<div>
-                <h6>{$label}</h6>
-                <p>
+<div class="space-y-2">
+                <flux:subheading>{$label}</flux:subheading>
+                <flux:text>
                     @if(\${$modelVar}->{$name})
                         {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}
                     @else
-                        <em class="text-muted">—</em>
+                        <span class="text-zinc-400">—</span>
                     @endif
-                </p>
+                </flux:text>
             </div>
 BLADE;
     }
@@ -475,19 +467,19 @@ BLADE;
         $name = Str::plural($relationship['name']);
 
         return <<<BLADE
-<div>
-                <h6>{$label}</h6>
-                <p>
+<div class="space-y-2">
+                <flux:subheading>{$label}</flux:subheading>
+                <div>
                     @if(\${$modelVar}->{$name}->isNotEmpty())
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <div class="flex flex-wrap gap-2">
                             @foreach(\${$modelVar}->{$name} as \$item)
-                                <span class="outline" style="padding: 0.25rem 0.5rem;">{{ \$item->name ?? \$item->id }}</span>
+                                <flux:badge>{{ \$item->name ?? \$item->id }}</flux:badge>
                             @endforeach
                         </div>
                     @else
-                        <em class="text-muted">—</em>
+                        <span class="text-zinc-400">—</span>
                     @endif
-                </p>
+                </div>
             </div>
 BLADE;
     }
