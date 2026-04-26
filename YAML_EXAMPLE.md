@@ -47,6 +47,28 @@ options:
 php artisan crudify:generate --file=crud.yaml
 ```
 
+## Many-to-Many Example
+
+```yaml
+model: Post
+
+fields:
+  title: string
+  body: text
+
+relationships:
+  tags:
+    type: belongsToMany
+    model: Tag
+```
+
+This generates:
+- `app/Models/Tag.php` if missing
+- pivot migration like `*_create_post_tag_table.php`
+- checkbox UI in Livewire create/edit views
+- tag badges in index/show views
+- form request rules for `selectedTagsIds` and `selectedTagsIds.*`
+
 ## Field Types
 
 - `string` - VARCHAR column

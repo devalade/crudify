@@ -12,6 +12,7 @@ class ModelGenerator extends BaseGenerator
         $namespace = 'App\\Models';
         $class = class_basename($model);
         $path = $this->getPath($namespace, $class);
+        $paths = [];
 
         $fillable = $this->fieldParser->getFillable();
         $casts = $this->fieldParser->getCasts();
@@ -52,7 +53,9 @@ class ModelGenerator extends BaseGenerator
 
         $this->createFile($path, $stub);
 
-        return [$path];
+        $paths[] = $path;
+
+        return array_merge($paths, $this->generateMissingRelatedModels($class));
     }
 
     protected function generateRelationships(): string
@@ -93,6 +96,48 @@ PHP;
         }
 
         return "\n\n".implode("\n\n", $methods);
+    }
+
+    /**
+     * @return array<string>
+     */
+    protected function generateMissingRelatedModels(string $model): array
+    {
+        $paths = [];
+
+        foreach ($this->getRelationships() as $rel) {
+            if (($rel['type'] ?? null) !== 'belongsToMany' || ! is_string($rel['model'] ?? null)) {
+                continue;
+            }
+
+            $relatedClass = class_basename($rel['model']);
+
+            if ($relatedClass === $model) {
+                continue;
+            }
+
+            $path = $this->getPath('App\\Models', $relatedClass);
+
+            if (file_exists($path)) {
+                $paths[] = $path;
+
+                continue;
+            }
+
+            $stub = $this->getStub('model');
+            $stub = str_replace('{{ namespace }}', 'App\\Models', $stub);
+            $stub = str_replace('{{ class }}', $relatedClass, $stub);
+            $stub = str_replace('{{ fillable }}', '', $stub);
+            $stub = str_replace('{{ casts }}', '', $stub);
+            $stub = str_replace('{{ uses }}', 'use Illuminate\\Database\\Eloquent\\Factories\\HasFactory;', $stub);
+            $stub = str_replace('{{ traits }}', 'use HasFactory;', $stub);
+            $stub = str_replace('{{ relationships }}', '', $stub);
+
+            $this->createFile($path, $stub);
+            $paths[] = $path;
+        }
+
+        return $paths;
     }
 
     /** @return array<string> */

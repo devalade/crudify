@@ -161,6 +161,28 @@ it('generates migration with soft deletes when enabled', function () {
     expect($content)->toContain('$table->softDeletes();');
 });
 
+it('generates pivot migration for belongsToMany relationships', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('tags:belongsToMany:Tag');
+
+    $generator = new MigrationGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(2);
+
+    $pivotPath = collect($paths)->first(fn ($path) => str_contains($path, '_create_post_tag_table.php'));
+    expect($pivotPath)->not->toBeNull();
+
+    $content = file_get_contents($pivotPath);
+    expect($content)->toContain("Schema::create('post_tag'");
+    expect($content)->toContain("\$table->foreignIdFor(\\App\\Models\\Post::class)->constrained('posts')->cascadeOnDelete();");
+    expect($content)->toContain("\$table->foreignIdFor(\\App\\Models\\Tag::class)->constrained('tags')->cascadeOnDelete();");
+    expect($content)->toContain("\$table->primary(['post_id', 'tag_id']);");
+});
+
 it('generates livewire v4 compatible routes', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');
@@ -251,6 +273,42 @@ it('generates form requests with exists rules for foreign keys', function () {
 
     $storeContent = file_get_contents($paths[0]);
     expect($storeContent)->toContain("Rule::exists('users', 'id')");
+});
+
+it('generates form requests with belongsToMany array exists rules', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('tags:belongsToMany:Tag');
+
+    $generator = new FormRequestGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $storeContent = file_get_contents($paths[0]);
+    $updateContent = file_get_contents($paths[1]);
+
+    expect($storeContent)->toContain("'selectedTagsIds' => ['nullable', 'array']");
+    expect($storeContent)->toContain("'selectedTagsIds.*' => ['integer', Rule::exists('tags', 'id')]");
+    expect($updateContent)->toContain("'selectedTagsIds' => ['sometimes', 'array']");
+});
+
+it('generates missing related model for belongsToMany relationships', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('tags:belongsToMany:Tag');
+
+    $generator = new ModelGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    expect($paths)->toHaveCount(2);
+    expect(file_exists(base_path('app/Models/Tag.php')))->toBeTrue();
+
+    $content = file_get_contents(base_path('app/Models/Tag.php'));
+    expect($content)->toContain('class Tag extends Model');
+    expect($content)->toContain('use HasFactory;');
 });
 
 it('generates a factory with faker methods mapped to field types', function () {

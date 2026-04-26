@@ -247,10 +247,39 @@ Relationships are automatically:
 - Eager-loaded in controllers and Livewire index components
 - Validated with `Rule::exists()` for foreign key fields in form requests
 - Displayed in index tables and show views
+- For `belongsToMany`, generates pivot migration and missing related model when needed
 
 ### belongsToMany Example
 
 For a `tags:belongsToMany:Tag` relationship, the generator produces:
+
+**YAML:**
+```yaml
+model: Post
+
+fields:
+  title: string
+  body: text
+
+relationships:
+  tags:
+    type: belongsToMany
+    model: Tag
+```
+
+Run:
+```bash
+php artisan crudify:generate --file=post.yaml
+```
+
+Generated artifacts:
+- `app/Models/Post.php`
+- `app/Models/Tag.php` if missing
+- `database/migrations/*_create_posts_table.php`
+- `database/migrations/*_create_post_tag_table.php`
+- Livewire create/edit checkbox UI
+- index badges for related tags
+- form request validation for `selectedTagsIds` and `selectedTagsIds.*`
 
 **Create/Edit Forms:**
 - Checkbox group for selecting tags

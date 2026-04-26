@@ -1,5 +1,6 @@
 # CRUDify YAML Configuration Example
 # Generate with: php artisan crudify:generate --file=example.yaml
+# Includes belongsToMany example with auto-generated pivot migration.
 
 model: Post
 
@@ -85,6 +86,7 @@ relationships:
     model: Category
 
   # Many-to-Many - generates checkbox group in forms
+  # Also generates post_tag pivot migration and Tag model if missing
   tags:
     type: belongsToMany
     model: Tag

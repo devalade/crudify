@@ -166,6 +166,21 @@ it('generates model with relationships via cli option', function () {
     expect($content)->toContain('return $this->belongsTo(\App\Models\User::class);');
 });
 
+it('generates belongsToMany support artifacts from cli option', function () {
+    $this->artisan('crudify:generate Post --fields=title:string --relationships=tags:belongsToMany:Tag')
+        ->assertSuccessful();
+
+    expect(file_exists(base_path('app/Models/Tag.php')))->toBeTrue();
+    expect(glob(base_path('database/migrations/*_create_post_tag_table.php')))->toHaveCount(1);
+
+    $storeRequest = file_get_contents(base_path('app/Http/Requests/StorePostRequest.php'));
+    expect($storeRequest)->toContain("'selectedTagsIds' => ['nullable', 'array']");
+    expect($storeRequest)->toContain("'selectedTagsIds.*' => ['integer', Rule::exists('tags', 'id')]");
+
+    $indexView = file_get_contents(base_path('resources/views/livewire/pages/posts/index.blade.php'));
+    expect($indexView)->toContain('<flux:badge size="sm">{{ $item->name ?? $item->id }}</flux:badge>');
+});
+
 it('handles yaml file with relationships', function () {
     $yaml = <<<'YAML'
 model: Article

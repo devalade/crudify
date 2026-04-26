@@ -61,6 +61,15 @@ class FormRequestGenerator extends BaseGenerator
                 }
                 $rules[] = "'{$foreignKey}' => [".implode(', ', $ruleStrings).']';
             }
+
+            if ($rel['type'] === 'belongsToMany') {
+                $property = 'selected'.Str::studly(Str::plural($rel['name'])).'Ids';
+                $relatedTable = Str::plural(Str::snake($rel['model']));
+                $presenceRule = $isUpdate ? 'sometimes' : 'nullable';
+
+                $rules[] = "'{$property}' => ['{$presenceRule}', 'array']";
+                $rules[] = "'{$property}.*' => ['integer', Rule::exists('{$relatedTable}', 'id')]";
+            }
         }
 
         foreach ($fields as $field) {
