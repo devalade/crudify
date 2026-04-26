@@ -44,6 +44,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $headers = $displayFields->map(fn ($f) => "<flux:table.column wire:click=\"sortBy('{$f['name']}')\" class=\"cursor-pointer\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</flux:table.column>")->implode("\n                    ");
         $rowContent = $displayFields->map(function ($f) use ($modelVar) {
             $limit = $f['type'] === 'text' ? 50 : 30;
+
             return "<flux:table.cell>{{ Str::limit(\${$modelVar}->{$f['name']}, {$limit}) }}</flux:table.cell>";
         })->implode("\n                            ");
         $colspan = $displayFields->count() + 2;
