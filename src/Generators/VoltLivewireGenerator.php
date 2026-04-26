@@ -35,19 +35,56 @@ class VoltLivewireGenerator extends BaseGenerator
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
+        $imageFields = collect($fields)->filter(fn ($f) => in_array($f['type'], ['image', 'file']))->values();
+        $hasImage = $imageFields->isNotEmpty();
+        $firstImage = $hasImage ? $imageFields->first() : null;
+
+        $belongsToRels = collect($this->getRelationships())->filter(fn ($r) => $r['type'] === 'belongsTo');
+        $belongsToManyRels = collect($this->getRelationships())->filter(fn ($r) => $r['type'] === 'belongsToMany');
+
         $sortableFields = collect(['id'])
             ->merge($displayFields->pluck('name'))
             ->unique()
             ->values()
             ->map(fn ($field) => "'{$field}'")
             ->implode(', ');
+
         $headers = $displayFields->map(fn ($f) => "<flux:table.column wire:click=\"sortBy('{$f['name']}')\" class=\"cursor-pointer\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</flux:table.column>")->implode("\n                    ");
+
+        foreach ($belongsToRels as $rel) {
+            $headers .= "\n                    <flux:table.column>".Str::title($rel['name']).'</flux:table.column>';
+        }
+
+        foreach ($belongsToManyRels as $rel) {
+            $headers .= "\n                    <flux:table.column>".Str::title(Str::plural($rel['name'])).'</flux:table.column>';
+        }
+
+        if ($hasImage) {
+            $headers .= "\n                    <flux:table.column>Image</flux:table.column>";
+        }
+
         $rowContent = $displayFields->map(function ($f) use ($modelVar) {
             $limit = $f['type'] === 'text' ? 50 : 30;
 
             return "<flux:table.cell>{{ Str::limit(\${$modelVar}->{$f['name']}, {$limit}) }}</flux:table.cell>";
         })->implode("\n                            ");
-        $colspan = $displayFields->count() + 2;
+
+        foreach ($belongsToRels as $rel) {
+            $name = $rel['name'];
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+        }
+
+        foreach ($belongsToManyRels as $rel) {
+            $name = Str::plural($rel['name']);
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name}->isNotEmpty())\n                                    <div class=\"flex flex-wrap gap-2\">\n                                        @foreach(\${$modelVar}->{$name} as \$item)\n                                            <flux:badge size=\"sm\">{{ \$item->name ?? \$item->id }}</flux:badge>\n                                        @endforeach\n                                    </div>\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+        }
+
+        if ($hasImage && $firstImage) {
+            $name = $firstImage['name'];
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))\n                                        <img src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" class=\"h-10 w-10 rounded-lg object-cover\" />\n                                    @else\n                                        <flux:button size=\"sm\" variant=\"ghost\" href=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" target=\"_blank\">File</flux:button>\n                                    @endif\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+        }
+
+        $colspan = $displayFields->count() + $belongsToRels->count() + $belongsToManyRels->count() + ($hasImage ? 1 : 0) + 2;
         $with = $this->getWithClause();
 
         $stub = $this->getStub('volt-index');
