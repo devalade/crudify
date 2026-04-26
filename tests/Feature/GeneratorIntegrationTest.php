@@ -125,6 +125,20 @@ it('generates livewire views without calling route at generation time', function
     expect($indexContent)->not->toContain('Illuminate\Routing\Exceptions\RouteNotFoundException');
 });
 
+it('generates livewire index view with centered padded layout', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|body:text');
+
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $indexContent = file_get_contents($paths[0]);
+
+    expect($indexContent)->toContain('mx-auto max-w-7xl');
+    expect($indexContent)->toContain('px-4 pt-4 pb-8 sm:px-6 lg:px-8');
+    expect($indexContent)->toContain('overflow-x-auto');
+});
+
 it('generates livewire create and edit views with csrf tokens', function () {
     $parser = new FieldParser;
     $parser->parse('title:string|body:text');
@@ -605,6 +619,9 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('$q->orWhere(\'title\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
+    expect($indexContent)->toContain('mx-auto max-w-7xl');
+    expect($indexContent)->toContain('px-4 pt-4 pb-8 sm:px-6 lg:px-8');
+    expect($indexContent)->toContain('overflow-x-auto');
     expect($indexContent)->not->toContain('{{ with }}');
 });
 
