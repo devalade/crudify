@@ -127,7 +127,7 @@ class MigrationGenerator extends BaseGenerator
             }
 
             $relatedTable = Str::plural(Str::snake(class_basename($rel['model'])));
-            $currentTimestamp = $timestamp->copy()->addSecond(count($pivotPaths))->format('Y_m_d_His');
+            $currentTimestamp = $timestamp->copy()->addSeconds(count($pivotPaths))->format('Y_m_d_His');
             $filename = "{$currentTimestamp}_create_{$pivotTable}_table.php";
             $path = database_path("migrations/{$filename}");
 

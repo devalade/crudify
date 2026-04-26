@@ -228,8 +228,8 @@ class CrudGenerateCommand extends Command
 
     protected function runGenerators(string $model, ?string $only, ?string $skip, bool $dryRun, bool $volt = false): int
     {
-        $onlyTypes = $only ? preg_split('/\s*[|;]\s*/', $only) : null;
-        $skipTypes = $skip ? preg_split('/\s*[|;]\s*/', $skip) : [];
+        $onlyTypes = $only ? preg_split('/\s*[|;]\s*/', $only) ?: [] : null;
+        $skipTypes = $skip ? preg_split('/\s*[|;]\s*/', $skip) ?: [] : [];
 
         $generated = [];
 
