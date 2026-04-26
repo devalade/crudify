@@ -22,7 +22,7 @@ class extends Component
         $this->{{ modelVar }}->delete();
 
         session()->flash('success', '{{ model }} deleted successfully.');
-        $this->redirectRoute('{{ route }}.index');
+        $this->redirectRoute('{{ routeName }}.index');
     }
 };
 ?>

@@ -91,7 +91,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
-                $validate = $this->getValidationAttribute($f['type'], $f['nullable'] ?? false, false);
+                $validate = $this->getValidationAttribute($f, false);
                 if (in_array($f['type'], ['image', 'file'])) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];';
@@ -169,11 +169,19 @@ class VoltLivewireGenerator extends BaseGenerator
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
             ->map(fn ($r) => 'public $'.Str::camel($r['model']).'Options = [];')
             ->implode("\n    ");
+        $belongsToManyProps = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => "#[Validate('nullable|array')]\n    public array \$selected".Str::studly(Str::plural($r['name'])).'Ids = [];')
+            ->implode("\n    ");
+        $belongsToManyOpts = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => 'public $'.Str::camel(Str::plural($r['name'])).'Options = [];')
+            ->implode("\n    ");
 
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
-                $validate = $this->getValidationAttribute($f['type'], $f['nullable'] ?? true, true);
+                $validate = $this->getValidationAttribute($f, true);
                 if (in_array($f['type'], ['image', 'file'])) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];'."\n    public array $".$f['name'].'ToRemove = [];';
@@ -186,7 +194,26 @@ class VoltLivewireGenerator extends BaseGenerator
             })
             ->implode("\n    ");
 
-        $allProperties = trim(implode("\n    ", array_filter([$belongsToProps, $belongsToOpts, $properties])));
+        $allProperties = trim(implode("\n    ", array_filter([$belongsToProps, $belongsToOpts, $belongsToManyProps, $belongsToManyOpts, $properties])));
+
+        $fillBelongsToProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => '$this->'.Str::snake($r['name'])."_id = \${$modelVar}->".Str::snake($r['name']).'_id;')
+            ->implode("\n    ");
+        $fillBelongsToManyProperties = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => '$this->selected'.Str::studly(Str::plural($r['name']))."Ids = \${$modelVar}->".Str::plural($r['name'])."->pluck('id')->toArray();")
+            ->implode("\n    ");
+        $mountBody = collect($this->getRelationships())
+            ->filter(fn ($r) => in_array($r['type'], ['belongsTo', 'belongsToMany']))
+            ->map(function ($r) {
+                if ($r['type'] === 'belongsTo') {
+                    return '$this->'.Str::camel($r['model']).'Options = \App\Models\\'.$r['model'].'::limit(100)->get();';
+                }
+
+                return '$this->'.Str::camel(Str::plural($r['name'])).'Options = \App\Models\\'.$r['model'].'::limit(100)->get();';
+            })
+            ->implode("\n    ");
 
         $fillProperties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
@@ -198,6 +225,7 @@ class VoltLivewireGenerator extends BaseGenerator
                 return '$this->'.$f['name'].' = $'.$modelVar.'->'.$f['name'].';';
             })
             ->implode("\n    ");
+        $fillProperties = trim(implode("\n    ", array_filter([$mountBody, $fillBelongsToProperties, $fillBelongsToManyProperties, $fillProperties])));
 
         $formFields = $this->generateFormFields($fields);
         $fileStorage = $this->generateFileStorage($fields, $modelBase, $modelVar, true);
@@ -225,6 +253,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ properties }}', $allProperties, $stub);
         $stub = str_replace('{{ fillProperties }}', $fillProperties, $stub);
         $stub = str_replace('{{ route }}', '/'.$kebabModels, $stub);
+        $stub = str_replace('{{ routeName }}', $kebabModels, $stub);
         $stub = str_replace('{{ formFields }}', $formFields, $stub);
         $stub = str_replace('{{ uses }}', $usesStr, $stub);
         $stub = str_replace('{{ traits }}', $traitsStr, $stub);
@@ -256,6 +285,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ editRoute }}', "route('{$kebabModels}.edit', \${$modelVar})", $stub);
         $stub = str_replace('{{ titleSingular }}', $modelBase, $stub);
         $stub = str_replace('{{ route }}', '/'.$kebabModels, $stub);
+        $stub = str_replace('{{ routeName }}', $kebabModels, $stub);
 
         $this->createFile($path, $stub);
 
@@ -309,7 +339,7 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
     /** @param  array<array<string, mixed>> $fields */
     protected function generateFormFields(array $fields): string
     {
-        return collect($fields)
+        $fieldMarkup = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $label = Str::title(str_replace('_', ' ', $f['name']));
@@ -330,7 +360,67 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
 
                 return "<label>\n                    {$label}\n                    {$input}\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ \$message }} @enderror</small>\n                </label>";
             })
-            ->implode("\n\n");
+            ->all();
+
+        $relationshipMarkup = collect($this->getRelationships())
+            ->filter(fn ($relationship) => $relationship['type'] === 'belongsTo')
+            ->map(fn ($relationship) => $this->generateRelationshipField($relationship))
+            ->all();
+
+        $belongsToManyMarkup = collect($this->getRelationships())
+            ->filter(fn ($relationship) => $relationship['type'] === 'belongsToMany')
+            ->map(fn ($relationship) => $this->generateBelongsToManyField($relationship))
+            ->all();
+
+        return implode("\n\n", array_filter([...$fieldMarkup, ...$relationshipMarkup, ...$belongsToManyMarkup]));
+    }
+
+    /**
+     * @param  array<string, mixed>  $relationship
+     */
+    protected function generateRelationshipField(array $relationship): string
+    {
+        $label = Str::title(str_replace('_', ' ', $relationship['name']));
+        $foreignKey = Str::snake($relationship['name']).'_id';
+        $relatedVar = $this->camelCase($relationship['model']);
+
+        return <<<BLADE
+<label>
+                    {$label}
+                    <select wire:model="{$foreignKey}">
+                        <option value="">Select {$label}</option>
+                        @foreach(\${$relatedVar}Options as \$option)
+                            <option value="{{ \$option->id }}">{{ \$option->name ?? \$option->id }}</option>
+                        @endforeach
+                    </select>
+                    <small class="text-red-500">@error('{$foreignKey}') {{ \$message }} @enderror</small>
+                </label>
+BLADE;
+    }
+
+    /**
+     * @param  array<string, mixed>  $relationship
+     */
+    protected function generateBelongsToManyField(array $relationship): string
+    {
+        $label = Str::title(Str::plural($relationship['name']));
+        $propertyName = 'selected'.Str::studly(Str::plural($relationship['name'])).'Ids';
+        $optionsVar = Str::camel(Str::plural($relationship['name'])).'Options';
+
+        return <<<BLADE
+<fieldset>
+                    <legend>{$label}</legend>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        @foreach(\${$optionsVar} as \$option)
+                            <label style="display: inline-flex; align-items: center; gap: 0.4rem; width: auto;">
+                                <input type="checkbox" wire:model="{$propertyName}" value="{{ \$option->id }}" />
+                                {{ \$option->name ?? \$option->id }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <small class="text-red-500">@error('{$propertyName}') {{ \$message }} @enderror</small>
+                </fieldset>
+BLADE;
     }
 
     protected function generateSyncRelationships(string $modelVar, bool $isEdit): string
@@ -439,32 +529,43 @@ PHP;
         return implode("\n        ", $lines);
     }
 
-    protected function getValidationAttribute(string $type, bool $nullable, bool $isUpdate): string
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function getValidationAttribute(array $field, bool $isUpdate): string
     {
         $rules = [];
-        $rules[] = $isUpdate ? ($nullable ? 'nullable' : 'sometimes') : ($nullable ? 'nullable' : 'required');
+        $rules[] = $isUpdate ? (($field['nullable'] ?? true) ? 'nullable' : 'sometimes') : (($field['nullable'] ?? false) ? 'nullable' : 'required');
 
-        if ($type === 'email') {
+        if ($field['type'] === 'email') {
             $rules[] = 'email';
         }
-        if (in_array($type, ['integer', 'bigint'])) {
+        if (in_array($field['type'], ['integer', 'bigint'])) {
             $rules[] = 'integer';
         }
-        if ($type === 'boolean') {
+        if ($field['type'] === 'boolean') {
             $rules[] = 'boolean';
         }
-        if (in_array($type, ['date', 'datetime'])) {
+        if (in_array($field['type'], ['date', 'datetime'])) {
             $rules[] = 'date';
         }
-        if ($type === 'image') {
-            $rules[] = 'image';
-            $rules[] = 'mimes:jpeg,png,jpg,gif,webp,svg,avif';
-            $rules[] = 'max:2048';
+        if ($field['type'] === 'image') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'image';
+                $rules[] = 'mimes:jpeg,png,jpg,gif,webp,svg,avif';
+                $rules[] = 'max:2048';
+            }
         }
-        if ($type === 'file') {
-            $rules[] = 'file';
-            $rules[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
-            $rules[] = 'max:2048';
+        if ($field['type'] === 'file') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'file';
+                $rules[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
+                $rules[] = 'max:2048';
+            }
         }
 
         return "#[Validate('".implode('|', $rules)."')]";

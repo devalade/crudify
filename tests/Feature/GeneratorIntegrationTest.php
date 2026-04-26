@@ -1,5 +1,6 @@
 <?php
 
+use Crudify\CrudifyServiceProvider;
 use Crudify\FieldParser;
 use Crudify\Generators\ControllerGenerator;
 use Crudify\Generators\FactoryGenerator;
@@ -13,6 +14,7 @@ use Crudify\Generators\SeederGenerator;
 use Crudify\Generators\VoltLivewireGenerator;
 use Crudify\RelationshipParser;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
     $this->tmpDir = sys_get_temp_dir().'/crudify-tests-'.uniqid();
@@ -505,7 +507,12 @@ it('generates volt edit with syncRelationships for belongsToMany', function () {
     $editContent = file_get_contents($paths[2]);
 
     expect($createContent)->toContain('public array $selectedTagsIds = [];');
+    expect($createContent)->toContain('public $tagsOptions = [];');
     expect($editContent)->toContain('$this->post->tags()->sync($this->selectedTagsIds);');
+    expect($editContent)->toContain('public array $selectedTagsIds = [];');
+    expect($editContent)->toContain('public $tagsOptions = [];');
+    expect($editContent)->toContain('$this->tagsOptions = \App\Models\Tag::limit(100)->get();');
+    expect($editContent)->toContain('$this->selectedTagsIds = $post->tags->pluck(\'id\')->toArray();');
 });
 
 it('generates volt index with search and pagination', function () {
@@ -525,4 +532,79 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->not->toContain('{{ with }}');
+});
+
+it('generates volt edit and show redirects using named routes', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+    $showContent = file_get_contents($paths[3]);
+
+    expect($editContent)->toContain('$this->redirectRoute(\'posts.index\');');
+    expect($showContent)->toContain('$this->redirectRoute(\'posts.index\');');
+    expect($editContent)->not->toContain('/posts.index');
+    expect($showContent)->not->toContain('/posts.index');
+});
+
+it('generates volt relationship form fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User,tags:belongsToMany:Tag');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain('<select wire:model="user_id">');
+    expect($createContent)->toContain('@foreach($userOptions as $option)');
+    expect($createContent)->toContain('wire:model="selectedTagsIds"');
+    expect($editContent)->toContain('<select wire:model="user_id">');
+    expect($editContent)->toContain('wire:model="selectedTagsIds"');
+});
+
+it('generates volt multi-file validation as arrays', function () {
+    $parser = new FieldParser;
+    $parser->parse('gallery:image:multiple,docs:file:multiple');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain("#[Validate('required|array')]");
+    expect($createContent)->toContain("#[Validate('required|array')]\n    public \$docs = [];");
+    expect($editContent)->toContain("#[Validate('sometimes|array')]");
+    expect($editContent)->not->toContain('required|image');
+    expect($editContent)->not->toContain('nullable|file');
+});
+
+it('discovers volt routes with singular model binding parameters', function () {
+    mkdir($this->tmpDir.'/resources/views/pages/posts', 0755, true);
+
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $generator->generate('Post');
+
+    Route::macro('livewire', function (string $uri, string $component) {
+        return Route::get($uri, fn () => $component);
+    });
+
+    $provider = $this->app->getProvider(CrudifyServiceProvider::class);
+    $method = new ReflectionMethod($provider, 'discoverVoltRoutes');
+    $method->setAccessible(true);
+    $method->invoke($provider);
+
+    expect(route('posts.show', ['post' => 1], false))->toBe('/posts/1/show');
+    expect(route('posts.edit', ['post' => 1], false))->toBe('/posts/1/edit');
 });

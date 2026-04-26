@@ -32,7 +32,7 @@ class extends Component
         {{ syncRelationships }}
 
         session()->flash('success', '{{ model }} updated successfully.');
-        $this->redirectRoute('{{ route }}.index');
+        $this->redirectRoute('{{ routeName }}.index');
     }
 
     {{ extraMethods }}

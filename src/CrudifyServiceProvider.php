@@ -65,7 +65,7 @@ class CrudifyServiceProvider extends ServiceProvider
 
             if ($filename !== 'index') {
                 if (in_array($filename, ['edit', 'show'])) {
-                    $fullRoutePath .= '/{'.$resource.'}';
+                    $fullRoutePath .= '/{'.Str::singular($resource).'}';
                 }
                 $fullRoutePath .= '/'.$filename;
             }
