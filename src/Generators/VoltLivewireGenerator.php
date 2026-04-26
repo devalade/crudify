@@ -48,7 +48,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
         $stub = str_replace('{{ searchables }}', $searchProperties, $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search', $stub);
-        $stub = str_replace('{{ with }}', $with, $stub);
+        $stub = str_replace('{{ with }}', $with ?: '', $stub);
         $stub = str_replace('{{ headers }}', $headers, $stub);
         $stub = str_replace('{{ rowContent }}', $rowContent, $stub);
         $stub = str_replace('{{ colspan }}', (string) $colspan, $stub);

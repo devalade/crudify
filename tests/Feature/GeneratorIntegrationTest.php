@@ -524,4 +524,5 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('$q->orWhere(\'title\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
+    expect($indexContent)->not->toContain('{{ with }}');
 });

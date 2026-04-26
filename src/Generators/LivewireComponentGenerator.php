@@ -49,7 +49,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
         $stub = str_replace('{{ searchables }}', $searchablesProps ? "\n    {$searchablesProps}\n" : '', $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search conditions', $stub);
-        $stub = str_replace('{{ with }}', $with, $stub);
+        $stub = str_replace('{{ with }}', $with ?: '', $stub);
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ viewPath }}', $viewPath, $stub);
 
