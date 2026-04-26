@@ -52,6 +52,7 @@ class extends Component
     </div>
 
     <form wire:submit="save" class="space-y-6">
+        @csrf
         <flux:card class="space-y-6">
             {{ formFields }}
         </flux:card>
