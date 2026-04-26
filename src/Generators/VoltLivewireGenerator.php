@@ -31,6 +31,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $fields = $this->fieldParser->getFields();
 
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
+        $searchProperties = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
@@ -45,6 +46,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
+        $stub = str_replace('{{ searchables }}', $searchProperties, $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search', $stub);
         $stub = str_replace('{{ with }}', $with, $stub);
         $stub = str_replace('{{ headers }}', $headers, $stub);
