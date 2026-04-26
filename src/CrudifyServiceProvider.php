@@ -3,6 +3,8 @@
 namespace Crudify;
 
 use Crudify\Commands\CrudGenerateCommand;
+use Crudify\Commands\CrudInstallCommand;
+use Crudify\Commands\CrudSetupCommand;
 use Crudify\Commands\CrudStubsCommand;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -21,6 +23,8 @@ class CrudifyServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CrudGenerateCommand::class,
+                CrudInstallCommand::class,
+                CrudSetupCommand::class,
                 CrudStubsCommand::class,
             ]);
 

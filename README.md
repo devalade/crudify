@@ -355,6 +355,31 @@ composer require livewire/flux
 @fluxScripts
 ```
 
+Bootstrap setup files with:
+
+```bash
+php artisan crudify:setup
+```
+
+This command:
+- creates `resources/css/app.css` with Tailwind + Flux imports
+- creates `resources/js/app.js`
+- creates or patches common app layouts with `@fluxAppearance`, `@vite(...)`, `@livewireScripts`, and `@fluxScripts`
+- patches Vite config to add `@tailwindcss/vite` when a Vite config file exists
+
+Install and bootstrap everything automatically:
+
+```bash
+php artisan crudify:install
+php artisan crudify:install --volt
+```
+
+`crudify:install`:
+- installs `livewire/flux`
+- installs `livewire/volt` when `--volt` used
+- installs `tailwindcss` and `@tailwindcss/vite` via npm when `package.json` exists
+- runs `crudify:setup`
+
 ---
 
 ## Command Options
