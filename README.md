@@ -11,7 +11,7 @@ Crudify creates models, migrations, controllers, form requests, policies, Livewi
 ## Installation
 
 ```bash
-composer require devalade/crudify
+composer require devalade/crudify --dev
 ```
 
 ---
@@ -26,6 +26,25 @@ php artisan crudify:generate Post \
   --relationships="user:belongsTo:User,category:belongsTo:Category,tags:belongsToMany:Tag" \
   --soft-delete
 ```
+
+### Volt (Single-File Components)
+
+Generate Livewire v4 single-file components (SFCs):
+
+```bash
+php artisan crudify:generate Post \
+  --fields="title:string,body:text,is_published:boolean" \
+  --volt
+```
+
+This generates SFCs directly in `resources/views/pages/posts/`:
+
+- `index.blade.php` — list with search, sort, pagination
+- `create.blade.php` — inline validation with `#[Validate]`
+- `edit.blade.php` — edit form with file upload support
+- `show.blade.php` — detail view
+
+Routes are auto-discovered and registered by Crudify's service provider.
 
 ### YAML
 
@@ -315,6 +334,7 @@ php artisan crudify:generate {model}
   --skip=            # Skip specific types (comma-separated)
   --soft-delete      # Add soft deletes
   --searchable=      # Comma-separated searchable fields
+  --volt             # Generate Livewire v4 single-file components
   --force            # Overwrite existing files
   --dry-run          # Preview without writing files
 ```
