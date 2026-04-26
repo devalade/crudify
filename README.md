@@ -171,32 +171,36 @@ name:type:modifier1:modifier2
 
 ## File Uploads
 
-Crudify supports single and multiple file/image uploads out of the box.
+Crudify supports single and multiple file/image uploads out of the box — for both standard Livewire components and Volt SFCs.
 
 ### Single Upload
 
 ```bash
 php artisan crudify:generate Product \
-  --fields="name:string,price:decimal,photo:image"
+  --fields="name:string,price:decimal,photo:image" \
+  --volt
 ```
 
 Generates:
 - `string` column for the file path
-- `WithFileUploads` trait in Livewire components
+- `WithFileUploads` trait in Volt components
 - File input with `accept="image/*"`
-- Image preview on edit/show views
+- Automatic file storage to `storage/app/public/`
+- Old file deletion on edit
 
 ### Multiple Uploads
 
 ```bash
 php artisan crudify:generate Gallery \
-  --fields="title:string,photos:image:multiple"
+  --fields="title:string,photos:image:multiple" \
+  --volt
 ```
 
 Generates:
 - `json` column for storing multiple paths
 - Array-cast in the model
 - Multiple file input (`<input type="file" multiple>`)
+- `removePhotosFile()` method for selective removal
 - Gallery preview grid on edit/show views
 
 ---
