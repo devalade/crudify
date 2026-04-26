@@ -12,6 +12,11 @@ class extends Component
 {
     public {{ model }} ${{ modelVar }};
 
+    public function mount({{ model }} ${{ modelVar }}): void
+    {
+        $this->{{ modelVar }} = ${{ modelVar }};
+    }
+
     public function delete(): void
     {
         $this->{{ modelVar }}->delete();
