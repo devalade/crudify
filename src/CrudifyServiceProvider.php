@@ -7,7 +7,6 @@ use Crudify\Commands\CrudStubsCommand;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use Livewire\Livewire;
 use Symfony\Component\Finder\Finder;
 
 class CrudifyServiceProvider extends ServiceProvider
@@ -108,6 +107,7 @@ class CrudifyServiceProvider extends ServiceProvider
         }
 
         $content = file_get_contents($path);
+
         return str_contains($content, 'new')
             && str_contains($content, 'class extends Component')
             && str_contains($content, '#[Layout');

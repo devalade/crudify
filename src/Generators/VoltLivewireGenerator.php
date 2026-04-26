@@ -29,10 +29,10 @@ class VoltLivewireGenerator extends BaseGenerator
     {
         $path = base_path("resources/views/pages/{$kebabModels}/index.blade.php");
         $fields = $this->fieldParser->getFields();
-        
+
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
-        
+
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
         $headers = $displayFields->map(fn ($f) => "<th wire:click=\"sortBy('{$f['name']})\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}) @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</th>")->implode("\n                ");
         $rowContent = $displayFields->map(fn ($f) => "<td>{{ \${$modelVar}->{$f['name']} }}</td>")->implode("\n                ");
@@ -53,6 +53,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ route }}', '/'.$kebabModels.'/create', $stub);
 
         $this->createFile($path, $stub);
+
         return [$path];
     }
 
@@ -61,7 +62,7 @@ class VoltLivewireGenerator extends BaseGenerator
     {
         $path = base_path("resources/views/pages/{$kebabModels}/create.blade.php");
         $fields = $this->fieldParser->getFields();
-        
+
         $belongsToProps = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
             ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \${$r['name']}_id = 0;")
@@ -70,17 +71,18 @@ class VoltLivewireGenerator extends BaseGenerator
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
             ->map(fn ($r) => 'public $'.Str::camel($r['model']).'Options = [];')
             ->implode("\n    ");
-        
+
         $properties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f['type'], $f['nullable'] ?? false, false);
+
                 return $validate."\n    public {$this->getPropertyType($f['type'])} \${$f['name']} = '';";
             })
             ->implode("\n    ");
 
         $allProperties = trim(implode("\n    ", array_filter([$belongsToProps, $belongsToOpts, $properties])));
-        
+
         $mountBody = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
             ->map(fn ($r) => '$this->'.Str::camel($r['model']).'Options = \\App\\Models\\'.$r['model'].'::limit(100)->get();')
@@ -99,6 +101,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ formFields }}', $formFields, $stub);
 
         $this->createFile($path, $stub);
+
         return [$path];
     }
 
@@ -107,7 +110,7 @@ class VoltLivewireGenerator extends BaseGenerator
     {
         $path = base_path("resources/views/pages/{$kebabModels}/edit.blade.php");
         $fields = $this->fieldParser->getFields();
-        
+
         $belongsToProps = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
             ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \${$r['name']}_id = 0;")
@@ -121,6 +124,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f['type'], $f['nullable'] ?? true, true);
+
                 return $validate."\n    public {$this->getPropertyType($f['type'])} \${$f['name']};";
             })
             ->implode("\n    ");
@@ -146,6 +150,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ formFields }}', $formFields, $stub);
 
         $this->createFile($path, $stub);
+
         return [$path];
     }
 
@@ -166,6 +171,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ route }}', '/'.$kebabModels, $stub);
 
         $this->createFile($path, $stub);
+
         return [$path];
     }
 
@@ -198,10 +204,19 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
     {
         $rules = [];
         $rules[] = $isUpdate ? ($nullable ? 'nullable' : 'sometimes') : ($nullable ? 'nullable' : 'required');
-        if ($type === 'email') $rules[] = 'email';
-        if (in_array($type, ['integer', 'bigint'])) $rules[] = 'integer';
-        if ($type === 'boolean') $rules[] = 'boolean';
-        if (in_array($type, ['date', 'datetime'])) $rules[] = 'date';
+        if ($type === 'email') {
+            $rules[] = 'email';
+        }
+        if (in_array($type, ['integer', 'bigint'])) {
+            $rules[] = 'integer';
+        }
+        if ($type === 'boolean') {
+            $rules[] = 'boolean';
+        }
+        if (in_array($type, ['date', 'datetime'])) {
+            $rules[] = 'date';
+        }
+
         return "#[Validate('".implode('|', $rules)."')]";
     }
 
@@ -226,6 +241,7 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
                     'text' => '<textarea wire:model="'.$f['name'].'" rows="4"></textarea>',
                     default => '<input type="text" wire:model="'.$f['name'].'" />',
                 };
+
                 return "<label>\n                    {$label}\n                    {$input}\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ $message }} @enderror</small>\n                </label>";
             })
             ->implode("\n\n");
