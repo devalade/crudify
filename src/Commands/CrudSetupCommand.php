@@ -108,7 +108,7 @@ class CrudSetupCommand extends Command
             $content = $this->injectBeforeClosingTag($content, '</head>', "    @fluxAppearance\n");
         }
 
-        if (! str_contains($content, "resources/css/app.css") || ! str_contains($content, "resources/js/app.js")) {
+        if (! str_contains($content, 'resources/css/app.css') || ! str_contains($content, 'resources/js/app.js')) {
             $content = $this->injectBeforeClosingTag($content, '</head>', "    @vite(['resources/css/app.css', 'resources/js/app.js'])\n");
         }
 

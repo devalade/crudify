@@ -108,7 +108,7 @@ it('generates livewire components in correct location', function () {
     expect($indexContent)->toContain("protected array \$sortable = ['id', 'title', 'body'];");
     expect($indexContent)->toContain('if (! in_array($field, $this->sortable, true)) {');
     expect($indexContent)->toContain('$this->resetPage();');
-    expect($indexContent)->toContain("->orderBy(\$this->getSortField(), \$this->getSortDirection())");
+    expect($indexContent)->toContain('->orderBy($this->getSortField(), $this->getSortDirection())');
 });
 
 it('generates livewire views without calling route at generation time', function () {
@@ -623,7 +623,7 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('wire:model.live.debounce.300ms="search"');
     expect($indexContent)->toContain('public function updatingPerPage(): void');
     expect($indexContent)->toContain('if (! in_array($field, $this->sortable, true)) {');
-    expect($indexContent)->toContain("->orderBy(\$this->getSortField(), \$this->getSortDirection())");
+    expect($indexContent)->toContain('->orderBy($this->getSortField(), $this->getSortDirection())');
     expect($indexContent)->toContain('$q->orWhere(\'title\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
