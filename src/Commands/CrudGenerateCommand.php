@@ -280,6 +280,41 @@ class CrudGenerateCommand extends Command
             $this->line("  3. Visit: /{$resource}");
         }
 
+        $this->appendLinkToLayout($model, $resource, $dryRun, $volt);
+
         return self::SUCCESS;
+    }
+
+    protected function appendLinkToLayout(string $model, string $resource, bool $dryRun, bool $volt): void
+    {
+        if ($dryRun) {
+            return;
+        }
+
+        $layoutPath = base_path('resources/views/components/layouts/app.blade.php');
+
+        if (! file_exists($layoutPath)) {
+            $layoutPath = base_path('resources/views/layouts/app.blade.php');
+        }
+
+        if (! file_exists($layoutPath)) {
+            return;
+        }
+
+        $content = file_get_contents($layoutPath);
+        $pluralName = Str::plural(class_basename($model));
+        $route = $volt ? "/{$resource}" : "{{ route('{$resource}.index') }}";
+        
+        $linkStr = "<!-- Navbar link for easy navigation -->\n    <!-- <flux:navbar.item href=\"{$route}\">{$pluralName}</flux:navbar.item> -->";
+
+        if (str_contains($content, ">{$pluralName}</flux:navbar.item>")) {
+            return;
+        }
+
+        if (str_contains($content, '{{ $slot }}')) {
+            $content = str_replace('{{ $slot }}', "{$linkStr}\n    {{ \$slot }}", $content);
+            file_put_contents($layoutPath, $content);
+            $this->info("  ✓ Added commented link to layout");
+        }
     }
 }
