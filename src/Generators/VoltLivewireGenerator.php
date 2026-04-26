@@ -132,6 +132,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $stub = $this->getStub('volt-create');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
+        $stub = str_replace('{{ modelVar }}', $modelVar, $stub);
         $stub = str_replace('{{ modelNamespace }}', 'App\Models', $stub);
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ titleSingular }}', $modelBase, $stub);
