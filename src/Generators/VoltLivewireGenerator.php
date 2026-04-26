@@ -16,10 +16,10 @@ class VoltLivewireGenerator extends BaseGenerator
         $pluralBase = Str::plural($modelBase);
 
         $paths = [];
-        $paths[] = $this->generateIndex($modelBase, $modelVar, $models, $kebabModels, $pluralBase);
-        $paths[] = $this->generateCreate($modelBase, $modelVar, $models, $kebabModels, $pluralBase);
-        $paths[] = $this->generateEdit($modelBase, $modelVar, $models, $kebabModels, $pluralBase);
-        $paths[] = $this->generateShow($modelBase, $modelVar, $models, $kebabModels, $pluralBase);
+        $paths = array_merge($paths, $this->generateIndex($modelBase, $modelVar, $models, $kebabModels, $pluralBase));
+        $paths = array_merge($paths, $this->generateCreate($modelBase, $modelVar, $models, $kebabModels, $pluralBase));
+        $paths = array_merge($paths, $this->generateEdit($modelBase, $modelVar, $models, $kebabModels, $pluralBase));
+        $paths = array_merge($paths, $this->generateShow($modelBase, $modelVar, $models, $kebabModels, $pluralBase));
 
         return $paths;
     }
@@ -175,6 +175,7 @@ class VoltLivewireGenerator extends BaseGenerator
         return [$path];
     }
 
+    /** @return array<string> */
     protected function generateRoutes(string $modelBase, string $pluralBase, string $kebabModels): array
     {
         $routeCode = "
@@ -185,9 +186,9 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}', 'pages::{$kebabModels}.sho
 Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels}.edit')->name('{$kebabModels}.edit');";
 
         $path = base_path('routes/web.php');
-        $existing = file_exists($path) ? file_get_contents($path) : '';
+        $existingContent = file_exists($path) ? (string) file_get_contents($path) : '';
 
-        if (! str_contains($existing, "pages::{$kebabModels}.")) {
+        if (! str_contains($existingContent, "pages::{$kebabModels}.")) {
             file_put_contents($path, $routeCode."\n", FILE_APPEND);
         }
 
@@ -242,7 +243,7 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
                     default => '<input type="text" wire:model="'.$f['name'].'" />',
                 };
 
-                return "<label>\n                    {$label}\n                    {$input}\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ $message }} @enderror</small>\n                </label>";
+                return "<label>\n                    {$label}\n                    {$input}\n                    <small class=\"text-red-500\">@error('{$f['name']}') {{ \$message }} @enderror</small>\n                </label>";
             })
             ->implode("\n\n");
     }

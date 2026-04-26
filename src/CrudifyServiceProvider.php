@@ -73,7 +73,6 @@ class CrudifyServiceProvider extends ServiceProvider
             $sfcComponent = 'pages::'.$resource.'.'.$filename;
             $phpComponent = 'App\\Livewire\\Pages\\'.Str::studly($resource).'\\'.Str::studly($filename);
 
-            // Check if it's a SFC (Volt-style) or PHP class
             $isSfc = file_exists($file->getPathname()) && $this->isVoltSfc($file->getPathname());
             $isPhpClass = class_exists($phpComponent);
 
@@ -86,6 +85,10 @@ class CrudifyServiceProvider extends ServiceProvider
                 : "{$resource}.{$filename}";
 
             if ($isSfc) {
+                if (! Route::hasMacro('livewire')) {
+                    continue;
+                }
+                // @phpstan-ignore-next-line livewire() is provided by livewire/volt package when installed
                 Route::livewire($fullRoutePath, $sfcComponent)->name($routeName);
             } else {
                 Route::get($fullRoutePath, $phpComponent)->name($routeName);
@@ -106,7 +109,7 @@ class CrudifyServiceProvider extends ServiceProvider
             return false;
         }
 
-        $content = file_get_contents($path);
+        $content = (string) file_get_contents($path);
 
         return str_contains($content, 'new')
             && str_contains($content, 'class extends Component')
