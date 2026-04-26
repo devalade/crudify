@@ -4,7 +4,7 @@ use Crudify\FieldParser;
 
 it('parses simple fields', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text,is_published:boolean');
+    $parser->parse('title:string|body:text|is_published:boolean');
 
     $fields = $parser->getFields();
 
@@ -25,7 +25,7 @@ it('parses simple fields', function () {
 
 it('parses fields with modifiers', function () {
     $parser = new FieldParser;
-    $parser->parse('email:string:nullable:unique,age:integer:default:18');
+    $parser->parse('email:string:nullable:unique|age:integer:default:18');
 
     $fields = $parser->getFields();
 
@@ -57,7 +57,7 @@ it('parses nullable foreign key fields', function () {
 
 it('returns correct casts', function () {
     $parser = new FieldParser;
-    $parser->parse('is_active:boolean,views:integer,price:float,published_at:datetime,meta:json');
+    $parser->parse('is_active:boolean|views:integer|price:float|published_at:datetime|meta:json');
 
     $casts = $parser->getCasts();
 
@@ -81,7 +81,7 @@ it('returns correct migration types', function () {
 
 it('parses image and file fields', function () {
     $parser = new FieldParser;
-    $parser->parse('photo:image,attachment:file,gallery:image:multiple,docs:file:multiple');
+    $parser->parse('photo:image|attachment:file|gallery:image:multiple|docs:file:multiple');
 
     $fields = $parser->getFields();
 
@@ -121,7 +121,27 @@ it('returns correct casts for multiple file fields', function () {
 
 it('ignores empty field names', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,,body:text');
+    $parser->parse('title:string||body:text');
 
     expect($parser->getFields())->toHaveCount(2);
+});
+
+it('supports pipe and semicolon field separators', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|body:text;is_published:boolean');
+
+    $fields = $parser->getFields();
+
+    expect($fields)->toHaveCount(3);
+    expect($fields[0]['name'])->toBe('title');
+    expect($fields[1]['name'])->toBe('body');
+    expect($fields[2]['name'])->toBe('is_published');
+});
+
+it('does not split fields on commas anymore', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,body:text');
+
+    expect($parser->getFields())->toHaveCount(1);
+    expect($parser->getFields()[0]['name'])->toBe('title');
 });

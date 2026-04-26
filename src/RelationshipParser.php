@@ -10,7 +10,7 @@ class RelationshipParser
     public function parse(string $relationshipsString): self
     {
         $this->relationships = [];
-        $items = explode(',', $relationshipsString);
+        $items = preg_split('/\s*[|;]\s*/', $relationshipsString) ?: [];
 
         foreach ($items as $item) {
             $item = trim($item);

@@ -9,7 +9,7 @@ class FieldParser
 
     public function parse(string $fieldsString): self
     {
-        $fieldStrings = explode(',', $fieldsString);
+        $fieldStrings = preg_split('/\s*[|;]\s*/', $fieldsString) ?: [];
 
         foreach ($fieldStrings as $fieldString) {
             $fieldString = trim($fieldString);
@@ -22,14 +22,14 @@ class FieldParser
             $foreignTable = null;
 
             // Extract default:value before splitting by colon
-            if (preg_match('/default:([^,]+)/', $fieldString, $matches)) {
+            if (preg_match('/default:([^|;]+)/', $fieldString, $matches)) {
                 $default = $matches[1];
                 $fieldString = str_replace($matches[0], '', $fieldString);
                 $fieldString = rtrim($fieldString, ':');
             }
 
             // Extract foreign:table before splitting by colon
-            if (preg_match('/foreign:([^:,]+)/', $fieldString, $matches)) {
+            if (preg_match('/foreign:([^:|;]+)/', $fieldString, $matches)) {
                 $foreignTable = $matches[1];
                 $fieldString = str_replace($matches[0], '', $fieldString);
                 $fieldString = rtrim($fieldString, ':');

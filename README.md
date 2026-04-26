@@ -22,8 +22,8 @@ composer require devalade/crudify --dev
 
 ```bash
 php artisan crudify:generate Post \
-  --fields="title:string,body:text,is_published:boolean,published_at:datetime" \
-  --relationships="user:belongsTo:User,category:belongsTo:Category,tags:belongsToMany:Tag" \
+  --fields="title:string|body:text|is_published:boolean|published_at:datetime" \
+  --relationships="user:belongsTo:User|category:belongsTo:Category|tags:belongsToMany:Tag" \
   --soft-delete
 ```
 
@@ -33,7 +33,7 @@ Generate Livewire v4 single-file components (SFCs):
 
 ```bash
 php artisan crudify:generate Post \
-  --fields="title:string,body:text,is_published:boolean" \
+  --fields="title:string|body:text|is_published:boolean" \
   --volt
 ```
 
@@ -177,7 +177,7 @@ Crudify supports single and multiple file/image uploads out of the box — for b
 
 ```bash
 php artisan crudify:generate Product \
-  --fields="name:string,price:decimal,photo:image" \
+  --fields="name:string|price:decimal|photo:image" \
   --volt
 ```
 
@@ -192,7 +192,7 @@ Generates:
 
 ```bash
 php artisan crudify:generate Gallery \
-  --fields="title:string,photos:image:multiple" \
+  --fields="title:string|photos:image:multiple" \
   --volt
 ```
 
@@ -213,8 +213,8 @@ Define Eloquent relationships in your model with a simple syntax.
 
 ```bash
 php artisan crudify:generate Post \
-  --fields="title:string,user_id:foreign:users" \
-  --relationships="user:belongsTo:User,category:belongsTo:Category,tags:belongsToMany:Tag,comments:hasMany:Comment"
+  --fields="title:string|user_id:foreign:users" \
+  --relationships="user:belongsTo:User|category:belongsTo:Category|tags:belongsToMany:Tag|comments:hasMany:Comment"
 ```
 
 ### YAML
@@ -332,11 +332,11 @@ composer require livewire/flux
 
 ```bash
 php artisan crudify:generate {model}
-  --fields=          # Comma-separated field definitions
+  --fields=          # Field definitions, separated by `|` or `;`
   --file=            # Path to YAML file (overrides --fields)
-  --relationships=   # Comma-separated relationships (name:type:Model)
-  --only=            # Generate only specific types (comma-separated)
-  --skip=            # Skip specific types (comma-separated)
+  --relationships=   # Relationships, separated by `|` or `;`
+  --only=            # Generate only specific types (`model|migration` etc.)
+  --skip=            # Skip specific types (`controller;policy` etc.)
   --soft-delete      # Add soft deletes
   --searchable=      # Comma-separated searchable fields
   --volt             # Generate Livewire v4 single-file components
@@ -350,21 +350,21 @@ php artisan crudify:generate {model}
 
 ```bash
 php artisan crudify:generate Product \
-  --fields="name:string,price:decimal,photo:image"
+  --fields="name:string|price:decimal|photo:image"
 ```
 
 **Generate with relationships:**
 
 ```bash
 php artisan crudify:generate Post \
-  --fields="title:string,body:text" \
-  --relationships="user:belongsTo:User,tags:belongsToMany:Tag"
+  --fields="title:string|body:text" \
+  --relationships="user:belongsTo:User|tags:belongsToMany:Tag"
 ```
 
 **Generate only model and migration:**
 
 ```bash
-php artisan crudify:generate Post --fields="title:string" --only=model,migration
+php artisan crudify:generate Post --fields="title:string" --only=model|migration
 ```
 
 **Skip controllers (Livewire-only):**

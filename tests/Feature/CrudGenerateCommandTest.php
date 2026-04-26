@@ -48,7 +48,7 @@ it('requires fields or file option', function () {
 });
 
 it('generates all files successfully', function () {
-    $this->artisan('crudify:generate Post --fields=title:string,body:text')
+    $this->artisan('crudify:generate Post --fields=title:string|body:text')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -70,11 +70,24 @@ it('generates all files successfully', function () {
 });
 
 it('respects --only option', function () {
-    $this->artisan('crudify:generate Post --fields=title:string --only=model,migration')
+    $this->artisan('crudify:generate Post --fields=title:string --only=model|migration')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
     expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeFalse();
+});
+
+it('accepts pipe and semicolon separators in cli options', function () {
+    $this->artisan('crudify:generate Post --fields=title:string|body:text;user_id:foreign:users --relationships=user:belongsTo:User|tags:belongsToMany:Tag --only=model;livewire')
+        ->assertSuccessful();
+
+    expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
+    expect(file_exists(base_path('app/Livewire/Pages/Posts/Index.php')))->toBeTrue();
+    expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeFalse();
+
+    $content = file_get_contents(base_path('app/Models/Post.php'));
+    expect($content)->toContain('public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
+    expect($content)->toContain('public function tags(): \Illuminate\Database\Eloquent\Relations\BelongsToMany');
 });
 
 it('respects --skip option', function () {
@@ -138,10 +151,14 @@ YAML;
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Article.php')))->toBeTrue();
+
+    $content = file_get_contents(base_path('app/Models/Article.php'));
+    expect($content)->toContain("'title'");
+    expect($content)->toContain("'body'");
 });
 
 it('generates model with relationships via cli option', function () {
-    $this->artisan('crudify:generate Post --fields=title:string,user_id:foreign:users --relationships=user:belongsTo:User')
+    $this->artisan('crudify:generate Post --fields=title:string|user_id:foreign:users --relationships=user:belongsTo:User')
         ->assertSuccessful();
 
     $content = file_get_contents(base_path('app/Models/Post.php'));
@@ -175,8 +192,31 @@ YAML;
     expect($content)->toContain('public function comments(): \Illuminate\Database\Eloquent\Relations\HasMany');
 });
 
+it('handles yaml file with multiple fields after separator change', function () {
+    $yaml = <<<'YAML'
+model: Product
+fields:
+  name: string
+  price: decimal
+  photo:
+    type: image
+    nullable: true
+YAML;
+
+    $yamlPath = $this->tmpDir.'/product.yaml';
+    file_put_contents($yamlPath, $yaml);
+
+    $this->artisan('crudify:generate', ['--file' => $yamlPath])
+        ->assertSuccessful();
+
+    $content = file_get_contents(base_path('app/Models/Product.php'));
+    expect($content)->toContain("'name'");
+    expect($content)->toContain("'price'");
+    expect($content)->toContain("'photo'");
+});
+
 it('generates factory and seeder with correct content', function () {
-    $this->artisan('crudify:generate Post --fields=title:string,body:text,is_published:boolean')
+    $this->artisan('crudify:generate Post --fields=title:string|body:text|is_published:boolean')
         ->assertSuccessful();
 
     $factoryContent = file_get_contents(base_path('database/factories/PostFactory.php'));
@@ -188,4 +228,14 @@ it('generates factory and seeder with correct content', function () {
     $seederContent = file_get_contents(base_path('database/seeders/PostSeeder.php'));
     expect($seederContent)->toContain('class PostSeeder extends Seeder');
     expect($seederContent)->toContain('Post::factory()->count(10)->create();');
+});
+
+it('does not accept comma separators in cli field lists', function () {
+    $this->artisan('crudify:generate Post --fields=title:string,body:text --only=model|controller')
+        ->assertSuccessful();
+
+    $modelContent = file_get_contents(base_path('app/Models/Post.php'));
+    expect($modelContent)->toContain("'title'");
+    expect($modelContent)->not->toContain("'body'");
+    expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeTrue();
 });

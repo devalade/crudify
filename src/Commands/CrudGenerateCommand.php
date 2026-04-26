@@ -24,11 +24,11 @@ use Illuminate\Support\Str;
 class CrudGenerateCommand extends Command
 {
     protected $signature = 'crudify:generate {model? : The model name (e.g., Post)}
-                            {--fields= : Comma-separated field definitions (e.g., title:string,body:text)}
+                            {--fields= : Field definitions separated by pipe or semicolon}
                             {--file= : Path to YAML definition file (overrides --fields)}
-                            {--relationships= : Comma-separated relationships (e.g., user:belongsTo:User,comments:hasMany:Comment)}
-                            {--only= : Generate only specified types (comma-separated)}
-                            {--skip= : Skip specified types (comma-separated)}
+                            {--relationships= : Relationships separated by pipe or semicolon}
+                            {--only= : Generate only specified types (pipe or semicolon separated)}
+                            {--skip= : Skip specified types (pipe or semicolon separated)}
                             {--soft-delete : Add soft deletes to model and migration}
                             {--searchable= : Comma-separated searchable fields}
                             {--force : Overwrite existing files}
@@ -70,7 +70,7 @@ class CrudGenerateCommand extends Command
         if (empty($fieldsString)) {
             $this->error('Either --fields or --file option is required.');
             $this->info('Examples:');
-            $this->info('  --fields="title:string,body:text,is_published:boolean"');
+            $this->info('  --fields="title:string|body:text|is_published:boolean"');
             $this->info('  --file=crud.yaml');
 
             return self::FAILURE;
@@ -145,7 +145,7 @@ class CrudGenerateCommand extends Command
             }
 
             return implode(':', $parts);
-        })->implode(',');
+        })->implode('|');
 
         $fieldParser->parse($fieldsString);
 
@@ -228,8 +228,8 @@ class CrudGenerateCommand extends Command
 
     protected function runGenerators(string $model, ?string $only, ?string $skip, bool $dryRun, bool $volt = false): int
     {
-        $onlyTypes = $only ? explode(',', $only) : null;
-        $skipTypes = $skip ? explode(',', $skip) : [];
+        $onlyTypes = $only ? preg_split('/\s*[|;]\s*/', $only) : null;
+        $skipTypes = $skip ? preg_split('/\s*[|;]\s*/', $skip) : [];
 
         $generated = [];
 

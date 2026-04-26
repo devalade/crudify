@@ -51,7 +51,7 @@ afterEach(function () {
 
 it('generates a valid controller', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text');
+    $parser->parse('title:string|body:text');
 
     $generator = new ControllerGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -89,7 +89,7 @@ it('generates valid form requests with correct unique rules', function () {
 
 it('generates livewire components in correct location', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text');
+    $parser->parse('title:string|body:text');
 
     $generator = new LivewireComponentGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -109,7 +109,7 @@ it('generates livewire components in correct location', function () {
 
 it('generates livewire views without calling route at generation time', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text');
+    $parser->parse('title:string|body:text');
 
     $generator = new LivewireViewGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -187,10 +187,10 @@ it('does not duplicate routes on subsequent runs', function () {
 
 it('generates model with relationship methods', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,user_id:foreign:users');
+    $parser->parse('title:string|user_id:foreign:users');
 
     $relParser = new RelationshipParser;
-    $relParser->parse('user:belongsTo:User,comments:hasMany:Comment');
+    $relParser->parse('user:belongsTo:User|comments:hasMany:Comment');
 
     $generator = new ModelGenerator(new Filesystem, $parser, [], $relParser);
     $paths = $generator->generate('Post');
@@ -255,7 +255,7 @@ it('generates form requests with exists rules for foreign keys', function () {
 
 it('generates a factory with faker methods mapped to field types', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text,is_published:boolean,published_at:datetime,views:integer,price:decimal,email:email');
+    $parser->parse('title:string|body:text|is_published:boolean|published_at:datetime|views:integer|price:decimal|email:email');
 
     $generator = new FactoryGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -303,7 +303,7 @@ it('generates a seeder', function () {
 
 it('generates form requests with mime type validation for file uploads', function () {
     $parser = new FieldParser;
-    $parser->parse('photo:image,attachment:file,gallery:image:multiple,docs:file:multiple');
+    $parser->parse('photo:image|attachment:file|gallery:image:multiple|docs:file:multiple');
 
     $generator = new FormRequestGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -318,7 +318,7 @@ it('generates form requests with mime type validation for file uploads', functio
 
 it('generates livewire edit component with file deletion logic', function () {
     $parser = new FieldParser;
-    $parser->parse('photo:image,attachment:file');
+    $parser->parse('photo:image|attachment:file');
 
     $generator = new LivewireComponentGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -331,7 +331,7 @@ it('generates livewire edit component with file deletion logic', function () {
 
 it('generates livewire edit component with multiple file removal methods', function () {
     $parser = new FieldParser;
-    $parser->parse('gallery:image:multiple,docs:file:multiple');
+    $parser->parse('gallery:image:multiple|docs:file:multiple');
 
     $generator = new LivewireComponentGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -376,7 +376,7 @@ it('limits relationship options to prevent memory issues', function () {
 
 it('generates volt livewire components with all placeholders replaced', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text');
+    $parser->parse('title:string|body:text');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -407,7 +407,7 @@ it('generates volt livewire components with all placeholders replaced', function
 
 it('generates volt show view with correct details structure', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text,is_published:boolean');
+    $parser->parse('title:string|body:text|is_published:boolean');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -437,7 +437,7 @@ it('generates volt index view with correct eager loading clause', function () {
 
 it('generates volt create with file upload support', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,photo:image,attachment:file');
+    $parser->parse('title:string|photo:image|attachment:file');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -459,7 +459,7 @@ it('generates volt create with file upload support', function () {
 
 it('generates volt edit with file deletion and removal methods', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,gallery:image:multiple,docs:file:multiple');
+    $parser->parse('title:string|gallery:image:multiple|docs:file:multiple');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -519,7 +519,7 @@ it('generates volt edit with syncRelationships for belongsToMany', function () {
 
 it('generates volt index with search and pagination', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text,email:email');
+    $parser->parse('title:string|body:text|email:email');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -560,7 +560,7 @@ it('generates volt relationship form fields', function () {
     $parser->parse('title:string');
 
     $relParser = new RelationshipParser;
-    $relParser->parse('user:belongsTo:User,tags:belongsToMany:Tag');
+    $relParser->parse('user:belongsTo:User|tags:belongsToMany:Tag');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
     $paths = $generator->generate('Post');
@@ -579,7 +579,7 @@ it('generates volt relationship form fields', function () {
 
 it('generates volt multi-file validation as arrays', function () {
     $parser = new FieldParser;
-    $parser->parse('gallery:image:multiple,docs:file:multiple');
+    $parser->parse('gallery:image:multiple|docs:file:multiple');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -618,10 +618,10 @@ it('discovers volt routes with singular model binding parameters', function () {
 
 it('generates volt show with file and relationship aware rendering', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,user_id:foreign:users,gallery:image:multiple,manual:file');
+    $parser->parse('title:string|user_id:foreign:users|gallery:image:multiple|manual:file');
 
     $relParser = new RelationshipParser;
-    $relParser->parse('user:belongsTo:User,tags:belongsToMany:Tag');
+    $relParser->parse('user:belongsTo:User|tags:belongsToMany:Tag');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
     $paths = $generator->generate('Post');
