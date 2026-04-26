@@ -75,3 +75,26 @@ it('respects custom layout option', function () {
 
     expect(file_exists(resource_path('views/admin/app.blade.php')))->toBeTrue();
 });
+
+it('patches vite config without duplicating tailwind import', function () {
+    file_put_contents(base_path('vite.config.js'), <<<'JS'
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+import tailwindcss from "@tailwindcss/vite";
+
+export default defineConfig({
+    plugins: [
+        laravel(['resources/css/app.css', 'resources/js/app.js']),
+        tailwindcss(),
+    ],
+});
+JS);
+
+    $this->artisan('crudify:setup')
+        ->assertSuccessful();
+
+    $viteConfig = file_get_contents(base_path('vite.config.js'));
+
+    expect(substr_count($viteConfig, '@tailwindcss/vite'))->toBe(1);
+    expect(substr_count($viteConfig, 'tailwindcss()'))->toBe(1);
+});

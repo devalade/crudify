@@ -204,13 +204,16 @@ class CrudSetupCommand extends Command
         }
 
         $content = $this->readFile($path);
+        $content = preg_replace('/^import\s+tailwindcss\s+from\s+[\'"]@tailwindcss\/vite[\'"];?\s*$/m', '', $content) ?? $content;
+        $content = ltrim($content);
 
-        if (! str_contains($content, "from '@tailwindcss/vite'")) {
-            if (preg_match("/import .* from 'vite'.*\n/", $content, $matches) === 1) {
-                $content = str_replace($matches[0], $matches[0]."import tailwindcss from '@tailwindcss/vite'\n", $content);
-            } else {
-                $content = "import tailwindcss from '@tailwindcss/vite'\n".$content;
-            }
+        if (preg_match_all('/^import .*$/m', $content, $matches, PREG_OFFSET_CAPTURE) > 0) {
+            $imports = $matches[0];
+            $lastImport = $imports[count($imports) - 1];
+            $offset = $lastImport[1] + strlen($lastImport[0]);
+            $content = substr($content, 0, $offset)."\nimport tailwindcss from '@tailwindcss/vite'".substr($content, $offset);
+        } else {
+            $content = "import tailwindcss from '@tailwindcss/vite'\n".$content;
         }
 
         if (! str_contains($content, 'tailwindcss()')) {
