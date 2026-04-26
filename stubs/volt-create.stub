@@ -13,6 +13,7 @@ new
 class extends Component
 {
     {{ traits }}
+
     {{ properties }}
 
     public function mount(): void
