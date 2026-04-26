@@ -49,6 +49,10 @@ class CrudInstallCommand extends Command
         }
 
         $this->newLine();
+        $this->info('Linking storage directory...');
+        $this->call('storage:link');
+
+        $this->newLine();
         $this->info('Crudify install complete.');
         $this->line('Installed/verified: Livewire dependency from Crudify, Flux, Tailwind CSS, Vite Tailwind plugin.');
 
