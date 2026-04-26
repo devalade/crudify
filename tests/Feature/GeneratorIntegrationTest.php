@@ -402,7 +402,7 @@ it('generates volt livewire components with all placeholders replaced', function
     expect($showContent)->not->toContain('{{ showFields }}');
     expect($showContent)->not->toContain('{{ editRoute }}');
     expect($showContent)->not->toContain('{{ titleSingular }}');
-    expect($showContent)->toContain('route(\'posts.edit\'');
+    expect($showContent)->toContain('posts.edit');
 });
 
 it('generates volt show view with correct details structure', function () {
@@ -413,8 +413,10 @@ it('generates volt show view with correct details structure', function () {
     $paths = $generator->generate('Post');
 
     $showContent = file_get_contents($paths[3]);
-    expect($showContent)->toContain('<tr><td>Title</td><td>{{ $post->title }}</td></tr>');
-    expect($showContent)->toContain('<tr><td>Body</td><td>{{ $post->body }}</td></tr>');
+    expect($showContent)->toContain('<h6>Title</h6>');
+    expect($showContent)->toContain('{{ $post->title }}');
+    expect($showContent)->toContain('<h6>Body</h6>');
+    expect($showContent)->toContain('{{ $post->body }}');
     expect($showContent)->not->toContain('{{ details }}');
     expect($showContent)->not->toContain('{{ pluralTitle }}');
 });
@@ -544,10 +546,13 @@ it('generates volt edit and show redirects using named routes', function () {
     $editContent = file_get_contents($paths[2]);
     $showContent = file_get_contents($paths[3]);
 
+    expect($editContent)->toContain('$this->post = $post;');
     expect($editContent)->toContain('$this->redirectRoute(\'posts.index\');');
     expect($showContent)->toContain('$this->redirectRoute(\'posts.index\');');
     expect($editContent)->not->toContain('/posts.index');
     expect($showContent)->not->toContain('/posts.index');
+    expect($showContent)->toContain('posts.edit');
+    expect($showContent)->toContain('role="button">Edit</a>');
 });
 
 it('generates volt relationship form fields', function () {
@@ -566,8 +571,10 @@ it('generates volt relationship form fields', function () {
     expect($createContent)->toContain('<select wire:model="user_id">');
     expect($createContent)->toContain('@foreach($userOptions as $option)');
     expect($createContent)->toContain('wire:model="selectedTagsIds"');
+    expect($createContent)->not->toContain('<input type="text" wire:model="user_id" />');
     expect($editContent)->toContain('<select wire:model="user_id">');
     expect($editContent)->toContain('wire:model="selectedTagsIds"');
+    expect($editContent)->not->toContain('<input type="text" wire:model="user_id" />');
 });
 
 it('generates volt multi-file validation as arrays', function () {
@@ -607,4 +614,25 @@ it('discovers volt routes with singular model binding parameters', function () {
 
     expect(route('posts.show', ['post' => 1], false))->toBe('/posts/1/show');
     expect(route('posts.edit', ['post' => 1], false))->toBe('/posts/1/edit');
+});
+
+it('generates volt show with file and relationship aware rendering', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string,user_id:foreign:users,gallery:image:multiple,manual:file');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User,tags:belongsToMany:Tag');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $showContent = file_get_contents($paths[3]);
+
+    expect($showContent)->toContain('@foreach(is_array($post->gallery) ? $post->gallery : json_decode($post->gallery, true) ?? [] as $path)');
+    expect($showContent)->toContain("asset('storage/' . \$path)");
+    expect($showContent)->toContain("asset('storage/' . \$post->manual)");
+    expect($showContent)->toContain('{{ $post->user->name ?? $post->user->id }}');
+    expect($showContent)->toContain('@foreach($post->tags as $item)');
+    expect($showContent)->not->toContain('{{ $post->gallery }}');
+    expect($showContent)->not->toContain('{{ $post->user_id }}');
 });

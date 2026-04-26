@@ -271,9 +271,21 @@ class VoltLivewireGenerator extends BaseGenerator
     {
         $path = base_path("resources/views/pages/{$kebabModels}/show.blade.php");
         $fields = $this->fieldParser->getFields();
-        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id');
+        $showFields = collect($fields)
+            ->reject(fn ($f) => $f['name'] === 'id' || $f['type'] === 'foreign')
+            ->map(fn ($f) => $this->generateShowField($f, $modelVar));
 
-        $details = $displayFields->map(fn ($f) => '<tr><td>'.Str::title(str_replace('_', ' ', $f['name'])).'</td><td>{{ $'.$modelVar.'->'.$f['name'].' }}</td></tr>')->implode("\n                ");
+        $belongsToShow = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsTo')
+            ->map(fn ($r) => $this->generateBelongsToShowField($r, $modelVar));
+
+        $belongsToManyShow = collect($this->getRelationships())
+            ->filter(fn ($r) => $r['type'] === 'belongsToMany')
+            ->map(fn ($r) => $this->generateBelongsToManyShowField($r, $modelVar));
+
+        $details = collect([$belongsToShow, $belongsToManyShow, $showFields])
+            ->flatten()
+            ->implode("\n\n    ");
 
         $stub = $this->getStub('volt-show');
         $stub = str_replace('{{ model }}', $modelBase, $stub);
@@ -282,7 +294,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ title }}', $modelBase, $stub);
         $stub = str_replace('{{ pluralTitle }}', $pluralBase, $stub);
         $stub = str_replace('{{ showFields }}', $details, $stub);
-        $stub = str_replace('{{ editRoute }}', "route('{$kebabModels}.edit', \${$modelVar})", $stub);
+        $stub = str_replace('{!! editRoute !!}', "<a href=\"{{ route('{$kebabModels}.edit', \${$modelVar}) }}\" role=\"button\">Edit</a>", $stub);
         $stub = str_replace('{{ titleSingular }}', $modelBase, $stub);
         $stub = str_replace('{{ route }}', '/'.$kebabModels, $stub);
         $stub = str_replace('{{ routeName }}', $kebabModels, $stub);
@@ -290,26 +302,6 @@ class VoltLivewireGenerator extends BaseGenerator
         $this->createFile($path, $stub);
 
         return [$path];
-    }
-
-    /** @return array<string> */
-    protected function generateRoutes(string $modelBase, string $pluralBase, string $kebabModels): array
-    {
-        $routeCode = "
-// Volt SFC Routes: {$modelBase}
-Route::livewire('/{$kebabModels}', 'pages::{$kebabModels}.index')->name('{$kebabModels}.index');
-Route::livewire('/{$kebabModels}/create', 'pages::{$kebabModels}.create')->name('{$kebabModels}.create');
-Route::livewire('/{$kebabModels}/{{ $kebabModels }}', 'pages::{$kebabModels}.show')->name('{$kebabModels}.show');
-Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels}.edit')->name('{$kebabModels}.edit');";
-
-        $path = base_path('routes/web.php');
-        $existingContent = file_exists($path) ? (string) file_get_contents($path) : '';
-
-        if (! str_contains($existingContent, "pages::{$kebabModels}.")) {
-            file_put_contents($path, $routeCode."\n", FILE_APPEND);
-        }
-
-        return ['routes/web.php'];
     }
 
     /** @return array<string> */
@@ -340,7 +332,7 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
     protected function generateFormFields(array $fields): string
     {
         $fieldMarkup = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || $f['type'] === 'foreign')
             ->map(function ($f) {
                 $label = Str::title(str_replace('_', ' ', $f['name']));
 
@@ -373,6 +365,115 @@ Route::livewire('/{$kebabModels}/{{ $kebabModels }}/edit', 'pages::{$kebabModels
             ->all();
 
         return implode("\n\n", array_filter([...$fieldMarkup, ...$relationshipMarkup, ...$belongsToManyMarkup]));
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function generateShowField(array $field, string $modelVar): string
+    {
+        $label = Str::title(str_replace('_', ' ', $field['name']));
+        $name = $field['name'];
+
+        if (in_array($field['type'], ['image', 'file'])) {
+            return $this->generateShowFileField($field, $label, $modelVar);
+        }
+
+        return '<div><h6>'.$label.'</h6><p>@if($'.$modelVar.'->'.$name.') {{ $'.$modelVar.'->'.$name.' }} @else <em class="text-muted">—</em> @endif</p></div>';
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function generateShowFileField(array $field, string $label, string $modelVar): string
+    {
+        $name = $field['name'];
+
+        if ($field['multiple'] ?? false) {
+            return <<<BLADE
+<div>
+        <h6>{$label}</h6>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            @if(!empty(\${$modelVar}->{$name}))
+                @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
+                    @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                        <img src="{{ asset('storage/' . \$path) }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px;" />
+                    @else
+                        <a href="{{ asset('storage/' . \$path) }}" target="_blank" class="outline">{{ basename(\$path) }}</a>
+                    @endif
+                @endforeach
+            @else
+                <em class="text-muted">—</em>
+            @endif
+        </div>
+    </div>
+BLADE;
+        }
+
+        return <<<BLADE
+<div>
+        <h6>{$label}</h6>
+        <p>
+            @if(\${$modelVar}->{$name})
+                @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
+                    <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" style="max-width: 300px; max-height: 200px; border-radius: 4px;" />
+                @else
+                    <a href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank" class="outline">{{ basename(\${$modelVar}->{$name}) }}</a>
+                @endif
+            @else
+                <em class="text-muted">—</em>
+            @endif
+        </p>
+    </div>
+BLADE;
+    }
+
+    /**
+     * @param  array<string, mixed>  $relationship
+     */
+    protected function generateBelongsToShowField(array $relationship, string $modelVar): string
+    {
+        $label = Str::title($relationship['name']);
+        $name = $relationship['name'];
+
+        return <<<BLADE
+<div>
+        <h6>{$label}</h6>
+        <p>
+            @if(\${$modelVar}->{$name})
+                {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}
+            @else
+                <em class="text-muted">—</em>
+            @endif
+        </p>
+    </div>
+BLADE;
+    }
+
+    /**
+     * @param  array<string, mixed>  $relationship
+     */
+    protected function generateBelongsToManyShowField(array $relationship, string $modelVar): string
+    {
+        $label = Str::title(Str::plural($relationship['name']));
+        $name = Str::plural($relationship['name']);
+
+        return <<<BLADE
+<div>
+        <h6>{$label}</h6>
+        <p>
+            @if(\${$modelVar}->{$name}->isNotEmpty())
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    @foreach(\${$modelVar}->{$name} as \$item)
+                        <span class="outline" style="padding: 0.25rem 0.5rem;">{{ \$item->name ?? \$item->id }}</span>
+                    @endforeach
+                </div>
+            @else
+                <em class="text-muted">—</em>
+            @endif
+        </p>
+    </div>
+BLADE;
     }
 
     /**
