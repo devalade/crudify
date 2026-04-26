@@ -102,6 +102,6 @@ class YamlParser
 
     public function hasVolt(): bool
     {
-        return $this->data['options']['volt'] ?? false;
+        return $this->data['options']['volt'] ?? true;
     }
 }

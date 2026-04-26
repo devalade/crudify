@@ -33,7 +33,8 @@ class CrudGenerateCommand extends Command
                             {--searchable= : Comma-separated searchable fields}
                             {--force : Overwrite existing files}
                             {--dry-run : Preview files without writing them}
-                            {--volt : Generate single-file Livewire components with file-based routing}';
+                            {--volt : Generate single-file Livewire components with file-based routing}
+                            {--livewire : Generate classic Livewire page classes, Blade views, controllers, form requests, and routes}';
 
     protected $description = 'Generate full CRUD with Livewire v4 components';
 
@@ -49,10 +50,11 @@ class CrudGenerateCommand extends Command
         $skip = is_string($this->option('skip')) ? $this->option('skip') : null;
         $force = (bool) $this->option('force');
         $dryRun = (bool) $this->option('dry-run');
-        $volt = (bool) $this->option('volt');
+        $livewire = (bool) $this->option('livewire');
+        $volt = ! $livewire;
 
         if ($yamlFile) {
-            return $this->handleYaml($yamlFile, $only, $skip, $force, $dryRun, $volt);
+            return $this->handleYaml($yamlFile, $only, $skip, $force, $dryRun, $volt, $livewire);
         }
 
         if (empty($model)) {
@@ -93,7 +95,7 @@ class CrudGenerateCommand extends Command
         return $this->runGenerators($model, $only, $skip, $dryRun, $volt);
     }
 
-    protected function handleYaml(string $yamlFile, ?string $only, ?string $skip, bool $force, bool $dryRun, bool $volt): int
+    protected function handleYaml(string $yamlFile, ?string $only, ?string $skip, bool $force, bool $dryRun, bool $volt, bool $livewire): int
     {
         if (! file_exists($yamlFile)) {
             $this->error("YAML file not found: {$yamlFile}");
@@ -153,7 +155,7 @@ class CrudGenerateCommand extends Command
         $relationshipParser->setRelationships($yamlParser->getRelationships());
 
         $softDeletes = $yamlParser->hasSoftDeletes();
-        $volt = $volt || $yamlParser->hasVolt();
+        $volt = $livewire ? false : $yamlParser->hasVolt();
 
         $this->registerGenerators($fieldParser, $relationshipParser, $force, $dryRun, $softDeletes, $volt);
 

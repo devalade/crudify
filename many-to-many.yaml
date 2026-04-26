@@ -1,0 +1,50 @@
+# CRUDify many-to-many example
+# Generate with: php artisan crudify:generate --file=many-to-many.yaml
+
+model: Post
+
+fields:
+  title:
+    type: string
+    unique: true
+
+  slug:
+    type: string
+    unique: true
+    index: true
+
+  body:
+    type: text
+
+  excerpt:
+    type: text
+    nullable: true
+
+  is_published:
+    type: boolean
+    default: false
+
+  published_at:
+    type: datetime
+    nullable: true
+
+relationships:
+  user:
+    type: belongsTo
+    model: User
+
+  category:
+    type: belongsTo
+    model: Category
+
+  tags:
+    type: belongsToMany
+    model: Tag
+
+searchable:
+  - title
+  - body
+
+options:
+  soft_deletes: true
+  volt: true

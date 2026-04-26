@@ -47,15 +47,32 @@ it('requires fields or file option', function () {
         ->assertFailed();
 });
 
-it('generates all files successfully', function () {
+it('generates volt files by default', function () {
     $this->artisan('crudify:generate Post --fields=title:string|body:text')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
+    expect(file_exists(base_path('app/Policies/PostPolicy.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/posts/index.blade.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/posts/create.blade.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/posts/edit.blade.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/posts/show.blade.php')))->toBeTrue();
+    expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeFalse();
+    expect(file_exists(base_path('app/Http/Requests/StorePostRequest.php')))->toBeFalse();
+    expect(file_exists(base_path('app/Http/Requests/UpdatePostRequest.php')))->toBeFalse();
+    expect(file_exists(base_path('app/Livewire/Pages/Posts/Index.php')))->toBeFalse();
+    expect(glob(base_path('database/migrations/*_create_posts_table.php')))->toHaveCount(1);
+    expect(file_exists(base_path('database/factories/PostFactory.php')))->toBeTrue();
+    expect(file_exists(base_path('database/seeders/PostSeeder.php')))->toBeTrue();
+});
+
+it('generates classic livewire files when --livewire is used', function () {
+    $this->artisan('crudify:generate Post --fields=title:string|body:text --livewire')
+        ->assertSuccessful();
+
     expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeTrue();
     expect(file_exists(base_path('app/Http/Requests/StorePostRequest.php')))->toBeTrue();
     expect(file_exists(base_path('app/Http/Requests/UpdatePostRequest.php')))->toBeTrue();
-    expect(file_exists(base_path('app/Policies/PostPolicy.php')))->toBeTrue();
     expect(file_exists(base_path('app/Livewire/Pages/Posts/Index.php')))->toBeTrue();
     expect(file_exists(base_path('app/Livewire/Pages/Posts/Create.php')))->toBeTrue();
     expect(file_exists(base_path('app/Livewire/Pages/Posts/Edit.php')))->toBeTrue();
@@ -64,9 +81,7 @@ it('generates all files successfully', function () {
     expect(file_exists(base_path('resources/views/livewire/pages/posts/create.blade.php')))->toBeTrue();
     expect(file_exists(base_path('resources/views/livewire/pages/posts/edit.blade.php')))->toBeTrue();
     expect(file_exists(base_path('resources/views/livewire/pages/posts/show.blade.php')))->toBeTrue();
-    expect(glob(base_path('database/migrations/*_create_posts_table.php')))->toHaveCount(1);
-    expect(file_exists(base_path('database/factories/PostFactory.php')))->toBeTrue();
-    expect(file_exists(base_path('database/seeders/PostSeeder.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/posts/index.blade.php')))->toBeFalse();
 });
 
 it('respects --only option', function () {
@@ -78,7 +93,7 @@ it('respects --only option', function () {
 });
 
 it('accepts pipe and semicolon separators in cli options', function () {
-    $this->artisan('crudify:generate Post --fields=title:string|body:text;user_id:foreign:users --relationships=user:belongsTo:User|tags:belongsToMany:Tag --only=model;livewire')
+    $this->artisan('crudify:generate Post --fields=title:string|body:text;user_id:foreign:users --relationships=user:belongsTo:User|tags:belongsToMany:Tag --only=model;livewire --livewire')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -91,7 +106,7 @@ it('accepts pipe and semicolon separators in cli options', function () {
 });
 
 it('respects --skip option', function () {
-    $this->artisan('crudify:generate Post --fields=title:string --skip=controller')
+    $this->artisan('crudify:generate Post --fields=title:string --skip=controller --livewire')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -123,7 +138,7 @@ it('respects --dry-run option', function () {
 });
 
 it('respects --soft-delete option', function () {
-    $this->artisan('crudify:generate Post --fields=title:string --soft-delete')
+    $this->artisan('crudify:generate Post --fields=title:string --soft-delete --livewire')
         ->assertSuccessful();
 
     $modelContent = file_get_contents(base_path('app/Models/Post.php'));
@@ -167,7 +182,7 @@ it('generates model with relationships via cli option', function () {
 });
 
 it('generates belongsToMany support artifacts from cli option', function () {
-    $this->artisan('crudify:generate Post --fields=title:string --relationships=tags:belongsToMany:Tag')
+    $this->artisan('crudify:generate Post --fields=title:string --relationships=tags:belongsToMany:Tag --livewire')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Tag.php')))->toBeTrue();
@@ -246,11 +261,32 @@ it('generates factory and seeder with correct content', function () {
 });
 
 it('does not accept comma separators in cli field lists', function () {
-    $this->artisan('crudify:generate Post --fields=title:string,body:text --only=model|controller')
+    $this->artisan('crudify:generate Post --fields=title:string,body:text --only=model|controller --livewire')
         ->assertSuccessful();
 
     $modelContent = file_get_contents(base_path('app/Models/Post.php'));
     expect($modelContent)->toContain("'title'");
     expect($modelContent)->not->toContain("'body'");
     expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeTrue();
+});
+
+it('respects yaml option to disable volt and generate classic livewire', function () {
+    $yaml = <<<'YAML'
+model: Article
+fields:
+  title: string
+  body: text
+options:
+  volt: false
+YAML;
+
+    $yamlPath = $this->tmpDir.'/classic.yaml';
+    file_put_contents($yamlPath, $yaml);
+
+    $this->artisan('crudify:generate', ['--file' => $yamlPath])
+        ->assertSuccessful();
+
+    expect(file_exists(base_path('app/Livewire/Pages/Articles/Index.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/livewire/pages/articles/index.blade.php')))->toBeTrue();
+    expect(file_exists(base_path('resources/views/pages/articles/index.blade.php')))->toBeFalse();
 });

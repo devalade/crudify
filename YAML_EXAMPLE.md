@@ -1,14 +1,16 @@
-# Crudify - YAML Definition Example
+# Crudify YAML Example
 
-## Livewire v4 Features
+Use YAML when you want one file to define model fields, relationships, and generator options.
 
-Generated components use Livewire v4 single-file convention (`⚡component.blade.php`) with:
-- `#[Layout('layouts::app')]` attribute for layout
-- `#[Title('...')]` attribute for page title
-- Type-safe properties with proper type hints
-- Void return types for action methods
+## Usage
 
-## Basic Example
+```bash
+php artisan crudify:generate --file=post.yaml
+```
+
+Crudify generates Volt single-file page components by default. To opt out and generate classic Livewire pages, set `options.volt: false`.
+
+## Full Example
 
 ```yaml
 model: Post
@@ -16,38 +18,102 @@ model: Post
 fields:
   title:
     type: string
-    nullable: false
     unique: true
+
   slug:
     type: string
-    nullable: false
     unique: true
     index: true
+
   body:
     type: text
-    nullable: false
+
+  excerpt:
+    type: text
+    nullable: true
+
   is_published:
     type: boolean
     default: false
+
   published_at:
     type: datetime
     nullable: true
+
+  view_count:
+    type: integer
+    default: 0
+
+  rating:
+    type: decimal
+    nullable: true
+
+  featured_image:
+    type: image
+    nullable: true
+
+  attachment:
+    type: file
+    nullable: true
+
+  gallery:
+    type: image
+    multiple: true
+    nullable: true
+
+  documents:
+    type: file
+    multiple: true
+    nullable: true
+
+relationships:
+  user:
+    type: belongsTo
+    model: User
+
+  category:
+    type: belongsTo
+    model: Category
+
+  tags:
+    type: belongsToMany
+    model: Tag
+
+  comments:
+    type: hasMany
+    model: Comment
 
 searchable:
   - title
   - body
 
 options:
-  soft_deletes: false
+  soft_deletes: true
+  volt: false
 ```
 
-## Usage
+## What This Generates
 
-```bash
-php artisan crudify:generate --file=crud.yaml
-```
+- model, migration, factory, seeder
+- policy
+- Volt index/create/edit/show pages
+- Flux UI pages with Tailwind classes
+- index page with search, sortable columns, and pagination
+- relationship-aware forms and show/index rendering
+- file and image upload handling
 
-## Many-to-Many Example
+If `options.volt: false`, Crudify generates classic Livewire page classes, Blade views, controllers, form requests, and routes instead.
+
+## Relationships
+
+Supported relationship types:
+
+- `belongsTo` - generates model method and dropdown field in forms
+- `hasMany` - generates model method
+- `hasOne` - generates model method
+- `belongsToMany` - generates model method, checkbox UI, sync on save, and pivot migration
+
+### belongsToMany Example
 
 ```yaml
 model: Post
@@ -62,90 +128,17 @@ relationships:
     model: Tag
 ```
 
-This generates:
+Generated extras:
+
 - `app/Models/Tag.php` if missing
-- pivot migration like `*_create_post_tag_table.php`
-- checkbox UI in Livewire create/edit views
-- tag badges in index/show views
-- form request rules for `selectedTagsIds` and `selectedTagsIds.*`
+- `*_create_post_tag_table.php` pivot migration
+- `selectedTagsIds` validation rules
+- checkbox UI in create/edit
+- related tags shown in index and show views
 
-## Field Types
+### More Many-to-Many Examples
 
-- `string` - VARCHAR column
-- `text` - TEXT column
-- `integer` - INTEGER column
-- `bigint` - BIGINT column
-- `float` - FLOAT column
-- `boolean` - BOOLEAN column
-- `date` - DATE column
-- `datetime` - DATETIME column
-- `timestamp` - TIMESTAMP column
-- `json` - JSON column
-- `uuid` - UUID column
-- `foreign` - Foreign key (requires `foreign:` key)
-
-## Field Options
-
-```yaml
-fields:
-  name:
-    type: string
-    nullable: true      # Allow NULL
-    unique: true        # Add unique constraint
-    index: true         # Add index
-    default: 'value'    # Default value
-    foreign: users      # Foreign key to 'users' table
-```
-
-## Complete Example with Foreign Keys
-
-```yaml
-model: Product
-
-fields:
-  name:
-    type: string
-    nullable: false
-    unique: true
-  slug:
-    type: string
-    nullable: false
-    unique: true
-    index: true
-  description:
-    type: text
-    nullable: true
-  price:
-    type: float
-    nullable: false
-    default: 0
-  stock:
-    type: integer
-    nullable: false
-    default: 0
-  is_active:
-    type: boolean
-    default: true
-  category_id:
-    type: foreign
-    foreign: categories
-    nullable: false
-  brand_id:
-    type: foreign
-    foreign: brands
-    nullable: true
-
-searchable:
-  - name
-  - description
-
-options:
-  soft_deletes: true
-```
-
-## Shorthand Syntax
-
-For simple fields, you can use shorthand:
+#### Posts and Tags
 
 ```yaml
 model: Post
@@ -154,21 +147,145 @@ fields:
   title: string
   body: text
   is_published: boolean
-  published_at: datetime
+
+relationships:
+  user:
+    type: belongsTo
+    model: User
+
+  tags:
+    type: belongsToMany
+    model: Tag
 ```
 
-This is equivalent to:
+This is a good fit for blog posts, articles, and knowledge base entries.
+
+#### Products and Collections
 
 ```yaml
-model: Post
+model: Product
 
 fields:
-  title:
+  name: string
+  slug:
     type: string
-  body:
-    type: text
-  is_published:
-    type: boolean
-  published_at:
-    type: datetime
+    unique: true
+  description: text
+  price: decimal
+  is_active: boolean
+
+relationships:
+  collections:
+    type: belongsToMany
+    model: Collection
 ```
+
+Crudify generates a `collection_product` pivot migration and checkbox selection UI for collections.
+
+#### Users and Roles
+
+```yaml
+model: User
+
+fields:
+  name: string
+  email:
+    type: string
+    unique: true
+  password: string
+
+relationships:
+  roles:
+    type: belongsToMany
+    model: Role
+```
+
+This is useful for admin panels where a user can have multiple roles.
+
+## Field Types
+
+- `string`
+- `text`
+- `integer`
+- `bigint`
+- `float`
+- `decimal`
+- `boolean`
+- `date`
+- `datetime`
+- `timestamp`
+- `json`
+- `uuid`
+- `foreign`
+- `image`
+- `file`
+
+## Field Options
+
+```yaml
+fields:
+  name:
+    type: string
+    nullable: true
+    unique: true
+    index: true
+    default: Example
+
+  author_id:
+    type: foreign
+    foreign: users
+```
+
+Supported field options:
+
+- `nullable`
+- `unique`
+- `index`
+- `default`
+- `foreign`
+- `multiple`
+
+## Shorthand Syntax
+
+Simple fields can use shorthand:
+
+```yaml
+model: Product
+
+fields:
+  name: string
+  description: text
+  price: decimal
+  is_active: boolean
+```
+
+Equivalent long form:
+
+```yaml
+model: Product
+
+fields:
+  name:
+    type: string
+  description:
+    type: text
+  price:
+    type: decimal
+  is_active:
+    type: boolean
+```
+
+## Volt Example
+
+```yaml
+model: Article
+
+fields:
+  title: string
+  body: text
+
+options:
+  volt: false
+```
+
+This generates classic Livewire files under `app/Livewire/Pages/...` and `resources/views/livewire/pages/...`.
