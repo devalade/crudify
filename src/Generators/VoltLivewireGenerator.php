@@ -60,8 +60,8 @@ class VoltLivewireGenerator extends BaseGenerator
         $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n".$inlineSuggestionMethod;
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
-        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
-        $imageFields = collect($fields)->filter(fn ($f) => in_array($f['type'], ['image', 'file']))->values();
+        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || $this->isMediaField($f))->take(5);
+        $imageFields = collect($fields)->filter(fn ($f) => $this->isMediaField($f))->values();
         $hasImage = $imageFields->isNotEmpty();
         $firstImage = $hasImage ? $imageFields->first() : null;
 
@@ -86,7 +86,7 @@ class VoltLivewireGenerator extends BaseGenerator
         }
 
         if ($hasImage) {
-            $headers .= "\n                    <flux:table.column>Image</flux:table.column>";
+            $headers .= "\n                    <flux:table.column>Media</flux:table.column>";
         }
 
         $rowContent = $displayFields->map(function ($f) use ($modelVar) {
@@ -109,7 +109,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         if ($hasImage && $firstImage) {
             $name = $firstImage['name'];
-            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))\n                                        <img src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" class=\"h-10 w-10 rounded-lg object-cover\" />\n                                    @else\n                                        <flux:button size=\"sm\" variant=\"ghost\" href=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" target=\"_blank\">File</flux:button>\n                                    @endif\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))\n                                        <img src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" class=\"h-10 w-10 rounded-lg object-cover\" />\n                                    @elseif(Str::endsWith(\${$modelVar}->{$name}, ['.mp4', '.mov', '.avi', '.webm', '.mkv']))\n                                        <video src=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" class=\"h-10 w-10 rounded-lg object-cover\" muted preload=\"metadata\"></video>\n                                    @else\n                                        <flux:button size=\"sm\" variant=\"ghost\" href=\"{{ asset('storage/' . \${$modelVar}->{$name}) }}\" target=\"_blank\">File</flux:button>\n                                    @endif\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
         }
 
         $colspan = $displayFields->count() + $belongsToRels->count() + $belongsToManyRels->count() + ($hasImage ? 1 : 0) + 2;
@@ -169,7 +169,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, false);
-                if (in_array($f['type'], ['image', 'file'])) {
+                if ($this->isMediaField($f)) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];';
                     }
@@ -259,7 +259,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, true);
-                if (in_array($f['type'], ['image', 'file'])) {
+                if ($this->isMediaField($f)) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];'."\n    public array $".$f['name'].'ToRemove = [];';
                     }
@@ -295,7 +295,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $fillProperties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) use ($modelVar) {
-                if (in_array($f['type'], ['image', 'file'])) {
+                if ($this->isMediaField($f)) {
                     return '// File fields are not pre-filled for security';
                 }
 
@@ -413,9 +413,13 @@ class VoltLivewireGenerator extends BaseGenerator
             ->map(function ($f) {
                 $label = Str::title(str_replace('_', ' ', $f['name']));
 
-                if (in_array($f['type'], ['image', 'file'])) {
+                if ($this->isMediaField($f)) {
                     $multiple = $f['multiple'] ?? false;
-                    $accept = $f['type'] === 'image' ? 'accept="image/*"' : '';
+                    $accept = match ($f['type']) {
+                        'image' => 'accept="image/*"',
+                        'video' => 'accept="video/*"',
+                        default => '',
+                    };
                     $multipleAttr = $multiple ? ' multiple' : '';
 
                     return "<div class=\"space-y-2\">\n                    <flux:input type=\"file\" wire:model=\"{$f['name']}\" label=\"{$label}\"{$multipleAttr} {$accept} />\n                    @error('{$f['name']}') <flux:text class=\"text-red-500\">{{ \$message }}</flux:text> @enderror\n                </div>";
@@ -452,7 +456,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $label = Str::title(str_replace('_', ' ', $field['name']));
         $name = $field['name'];
 
-        if (in_array($field['type'], ['image', 'file'])) {
+        if ($this->isMediaField($field)) {
             return $this->generateShowFileField($field, $label, $modelVar);
         }
 
@@ -475,6 +479,8 @@ class VoltLivewireGenerator extends BaseGenerator
                 @foreach(is_array(\${$modelVar}->{$name}) ? \${$modelVar}->{$name} : json_decode(\${$modelVar}->{$name}, true) ?? [] as \$path)
                     @if(Str::endsWith(\$path, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                         <img src="{{ asset('storage/' . \$path) }}" class="h-24 w-24 rounded-xl object-cover" />
+                    @elseif(Str::endsWith(\$path, ['.mp4', '.mov', '.avi', '.webm', '.mkv']))
+                        <video src="{{ asset('storage/' . \$path) }}" class="h-24 w-24 rounded-xl object-cover" controls preload="metadata"></video>
                     @else
                         <flux:button variant="ghost" href="{{ asset('storage/' . \$path) }}" target="_blank">{{ basename(\$path) }}</flux:button>
                     @endif
@@ -494,6 +500,8 @@ BLADE;
             @if(\${$modelVar}->{$name})
                 @if(Str::endsWith(\${$modelVar}->{$name}, ['.jpg', '.jpeg', '.png', '.gif', '.webp']))
                     <img src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" class="max-h-56 rounded-xl object-cover" />
+                @elseif(Str::endsWith(\${$modelVar}->{$name}, ['.mp4', '.mov', '.avi', '.webm', '.mkv']))
+                    <video src="{{ asset('storage/' . \${$modelVar}->{$name}) }}" class="max-h-56 rounded-xl object-cover" controls preload="metadata"></video>
                 @else
                     <flux:button variant="ghost" href="{{ asset('storage/' . \${$modelVar}->{$name}) }}" target="_blank">{{ basename(\${$modelVar}->{$name}) }}</flux:button>
                 @endif
@@ -629,7 +637,7 @@ BLADE;
      */
     protected function generateFileRemovalMethods(array $fields): string
     {
-        $multipleFileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']) && ($f['multiple'] ?? false));
+        $multipleFileFields = array_filter($fields, fn ($f) => $this->isMediaField($f) && ($f['multiple'] ?? false));
 
         if (empty($multipleFileFields)) {
             return '';
@@ -655,7 +663,7 @@ PHP;
      */
     protected function generateFileStorage(array $fields, string $modelBase, string $modelVar, bool $isEdit = false): string
     {
-        $fileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']));
+        $fileFields = array_filter($fields, fn ($f) => $this->isMediaField($f));
 
         if (empty($fileFields)) {
             return '';
@@ -745,6 +753,15 @@ PHP;
                 $rules[] = 'file';
                 $rules[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
                 $rules[] = 'max:2048';
+            }
+        }
+        if ($field['type'] === 'video') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'file';
+                $rules[] = 'mimes:mp4,mov,avi,webm,mkv';
+                $rules[] = 'max:10240';
             }
         }
 

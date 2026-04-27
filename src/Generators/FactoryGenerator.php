@@ -73,12 +73,14 @@ class FactoryGenerator extends BaseGenerator
     {
         $type = is_string($field['type'] ?? null) ? $field['type'] : 'string';
 
-        if ($type === 'image' || $type === 'file') {
+        if (in_array($type, ['image', 'file', 'video'], true)) {
+            $extension = $type === 'video' ? 'mp4' : 'jpg';
+
             if ($field['multiple'] ?? false) {
-                return "[fake()->word().'.jpg']";
+                return "[fake()->word().'.{$extension}']";
             }
 
-            return "fake()->word().'.jpg'";
+            return "fake()->word().'.{$extension}'";
         }
 
         return match ($type) {

@@ -391,9 +391,9 @@ it('generates a seeder', function () {
     expect($content)->toContain('Post::factory()->count(10)->create();');
 });
 
-it('generates form requests with mime type validation for file uploads', function () {
+it('generates form requests with mime type validation for media uploads', function () {
     $parser = new FieldParser;
-    $parser->parse('photo:image|attachment:file|gallery:image:multiple|docs:file:multiple');
+    $parser->parse('photo:image|attachment:file|clip:video|gallery:image:multiple|docs:file:multiple|trailers:video:multiple');
 
     $generator = new FormRequestGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -402,8 +402,10 @@ it('generates form requests with mime type validation for file uploads', functio
 
     expect($storeContent)->toContain("'mimes:jpeg,png,jpg,gif,webp,svg,avif'");
     expect($storeContent)->toContain("'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx'");
+    expect($storeContent)->toContain("'mimes:mp4,mov,avi,webm,mkv'");
     expect($storeContent)->toContain("'gallery.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp,svg,avif', 'max:2048']");
     expect($storeContent)->toContain("'docs.*' => ['file', 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx', 'max:2048']");
+    expect($storeContent)->toContain("'trailers.*' => ['file', 'mimes:mp4,mov,avi,webm,mkv', 'max:10240']");
 });
 
 it('generates livewire edit component with file deletion logic', function () {
@@ -527,7 +529,7 @@ it('generates volt index view with correct eager loading clause', function () {
 
 it('generates volt create with file upload support', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string|photo:image|attachment:file');
+    $parser->parse('title:string|photo:image|attachment:file|clip:video');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -539,8 +541,10 @@ it('generates volt create with file upload support', function () {
     expect($createContent)->toContain('use WithFileUploads;');
     expect($createContent)->toContain('public $photo;');
     expect($createContent)->toContain('public $attachment;');
+    expect($createContent)->toContain('public $clip;');
     expect($createContent)->toContain('type="file"');
     expect($createContent)->toContain('accept="image/*"');
+    expect($createContent)->toContain('accept="video/*"');
     expect($createContent)->toContain("->store('posts', 'public')");
     expect($createContent)->not->toContain('{{ uses }}');
     expect($createContent)->not->toContain('{{ traits }}');
@@ -695,9 +699,9 @@ it('generates volt relationship form fields', function () {
     expect($editContent)->not->toContain('<input type="text" wire:model="user_id" />');
 });
 
-it('generates volt multi-file validation as arrays', function () {
+it('generates volt multi-media validation as arrays', function () {
     $parser = new FieldParser;
-    $parser->parse('gallery:image:multiple|docs:file:multiple');
+    $parser->parse('gallery:image:multiple|docs:file:multiple|trailers:video:multiple');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -707,6 +711,7 @@ it('generates volt multi-file validation as arrays', function () {
 
     expect($createContent)->toContain("#[Validate('required|array')]");
     expect($createContent)->toContain("#[Validate('required|array')]\n    public \$docs = [];");
+    expect($createContent)->toContain("#[Validate('required|array')]\n    public \$trailers = [];");
     expect($editContent)->toContain("#[Validate('sometimes|array')]");
     expect($editContent)->not->toContain('required|image');
     expect($editContent)->not->toContain('nullable|file');
@@ -734,9 +739,9 @@ it('discovers volt routes with singular model binding parameters', function () {
     expect(route('posts.edit', ['post' => 1], false))->toBe('/posts/1/edit');
 });
 
-it('generates volt show with file and relationship aware rendering', function () {
+it('generates volt show with media and relationship aware rendering', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string|user_id:foreign:users|gallery:image:multiple|manual:file');
+    $parser->parse('title:string|user_id:foreign:users|gallery:image:multiple|manual:file|clip:video');
 
     $relParser = new RelationshipParser;
     $relParser->parse('user:belongsTo:User|tags:belongsToMany:Tag');
@@ -749,8 +754,32 @@ it('generates volt show with file and relationship aware rendering', function ()
     expect($showContent)->toContain('@foreach(is_array($post->gallery) ? $post->gallery : json_decode($post->gallery, true) ?? [] as $path)');
     expect($showContent)->toContain("asset('storage/' . \$path)");
     expect($showContent)->toContain("asset('storage/' . \$post->manual)");
+    expect($showContent)->toContain("asset('storage/' . \$post->clip)");
+    expect($showContent)->toContain('<video src="{{ asset(\'storage/\' . $post->clip) }}"');
     expect($showContent)->toContain('{{ $post->user->name ?? $post->user->id }}');
     expect($showContent)->toContain('@foreach($post->tags as $item)');
     expect($showContent)->not->toContain('{{ $post->gallery }}');
     expect($showContent)->not->toContain('{{ $post->user_id }}');
+});
+
+it('generates livewire views with video upload and preview support', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|clip:video|trailers:video:multiple');
+
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $indexContent = file_get_contents($paths[0]);
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+    $showContent = file_get_contents($paths[3]);
+
+    expect($indexContent)->toContain('<flux:table.column>Media</flux:table.column>');
+    expect($indexContent)->toContain('<video src="{{ asset(\'storage/\' . $post->clip) }}"');
+    expect($createContent)->toContain('accept="video/*"');
+    expect($editContent)->toContain('accept="video/*"');
+    expect($editContent)->toContain('<video src="{{ asset(\'storage/\' . $post->clip) }}"');
+    expect($editContent)->toContain('<video src="{{ asset(\'storage/\' . $path) }}"');
+    expect($showContent)->toContain('<video src="{{ asset(\'storage/\' . $post->clip) }}"');
+    expect($showContent)->toContain('<video src="{{ asset(\'storage/\' . $path) }}"');
 });

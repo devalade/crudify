@@ -159,4 +159,22 @@ abstract class BaseGenerator implements Generator
 
         return is_string($display) && $display !== '' ? $display : 'name';
     }
+
+    /** @param  array<string, mixed>  $field */
+    protected function isImageField(array $field): bool
+    {
+        return ($field['type'] ?? null) === 'image';
+    }
+
+    /** @param  array<string, mixed>  $field */
+    protected function isVideoField(array $field): bool
+    {
+        return ($field['type'] ?? null) === 'video';
+    }
+
+    /** @param  array<string, mixed>  $field */
+    protected function isMediaField(array $field): bool
+    {
+        return in_array($field['type'] ?? null, ['image', 'file', 'video'], true);
+    }
 }

@@ -121,6 +121,16 @@ class FormRequestGenerator extends BaseGenerator
                 }
             }
 
+            if ($field['type'] === 'video') {
+                if ($field['multiple'] ?? false) {
+                    $ruleSet[] = 'array';
+                } else {
+                    $ruleSet[] = 'file';
+                    $ruleSet[] = 'mimes:mp4,mov,avi,webm,mkv';
+                    $ruleSet[] = 'max:10240';
+                }
+            }
+
             if ($field['unique']) {
                 if ($isUpdate) {
                     $ruleSet[] = "Rule::unique('{$table}', '{$field['name']}')->ignore(\$this->route('{$modelVar}'))";
@@ -149,9 +159,11 @@ class FormRequestGenerator extends BaseGenerator
             $rules[] = "'{$field['name']}' => [".implode(', ', $ruleStrings).']';
 
             // Add validation for individual items in multiple file uploads
-            if (($field['type'] === 'image' || $field['type'] === 'file') && ($field['multiple'] ?? false)) {
+            if (in_array($field['type'], ['image', 'file', 'video'], true) && ($field['multiple'] ?? false)) {
                 if ($field['type'] === 'image') {
                     $rules[] = "'{$field['name']}.*' => ['image', 'mimes:jpeg,png,jpg,gif,webp,svg,avif', 'max:2048']";
+                } elseif ($field['type'] === 'video') {
+                    $rules[] = "'{$field['name']}.*' => ['file', 'mimes:mp4,mov,avi,webm,mkv', 'max:10240']";
                 } else {
                     $rules[] = "'{$field['name']}.*' => ['file', 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx', 'max:2048']";
                 }

@@ -37,7 +37,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $sortableFields = collect(['id'])
             ->merge(
                 collect($fields)
-                    ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))
+                    ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file', 'video']))
                     ->take(5)
                     ->pluck('name')
             )
@@ -132,7 +132,7 @@ class LivewireComponentGenerator extends BaseGenerator
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, false);
-                if (in_array($f['type'], ['image', 'file'])) {
+                if (in_array($f['type'], ['image', 'file', 'video'], true)) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];';
                     }
@@ -228,7 +228,7 @@ class LivewireComponentGenerator extends BaseGenerator
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, true);
-                if (in_array($f['type'], ['image', 'file'])) {
+                if (in_array($f['type'], ['image', 'file', 'video'], true)) {
                     if ($f['multiple'] ?? false) {
                         return $validate."\n    public $".$f['name'].' = [];'."\n    public array $".$f['name'].'ToRemove = [];';
                     }
@@ -267,7 +267,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $fieldFillProperties = collect($fields)
             ->reject(fn ($f) => $f['name'] === 'id')
             ->map(function ($f) use ($modelVar) {
-                if (in_array($f['type'], ['image', 'file'])) {
+                if (in_array($f['type'], ['image', 'file', 'video'], true)) {
                     return '// File fields are not pre-filled for security';
                 }
 
@@ -376,7 +376,7 @@ class LivewireComponentGenerator extends BaseGenerator
      */
     protected function generateFileRemovalMethods(array $fields): string
     {
-        $multipleFileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']) && ($f['multiple'] ?? false));
+        $multipleFileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file', 'video'], true) && ($f['multiple'] ?? false));
 
         if (empty($multipleFileFields)) {
             return '';
@@ -402,7 +402,7 @@ PHP;
      */
     protected function generateFileStorage(array $fields, string $modelBase, string $modelVar, bool $isEdit = false): string
     {
-        $fileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file']));
+        $fileFields = array_filter($fields, fn ($f) => in_array($f['type'], ['image', 'file', 'video'], true));
 
         if (empty($fileFields)) {
             return '';
@@ -502,6 +502,16 @@ PHP;
                 $rules[] = 'file';
                 $rules[] = 'mimes:pdf,doc,docx,txt,zip,xls,xlsx,csv,ppt,pptx';
                 $rules[] = 'max:2048';
+            }
+        }
+
+        if ($field['type'] === 'video') {
+            if ($field['multiple'] ?? false) {
+                $rules[] = 'array';
+            } else {
+                $rules[] = 'file';
+                $rules[] = 'mimes:mp4,mov,avi,webm,mkv';
+                $rules[] = 'max:10240';
             }
         }
 

@@ -105,7 +105,7 @@ class FieldParser
     {
         $type = $field['type'];
 
-        if ($field['multiple'] && in_array($type, ['image', 'file'])) {
+        if ($field['multiple'] && in_array($type, ['image', 'file', 'video'])) {
             return 'array';
         }
 
@@ -124,12 +124,12 @@ class FieldParser
 
     public function getMigrationType(string $type, bool $multiple = false): string
     {
-        if ($multiple && in_array($type, ['image', 'file'])) {
+        if ($multiple && in_array($type, ['image', 'file', 'video'])) {
             return 'json';
         }
 
         return match ($type) {
-            'string', 'image', 'file' => 'string',
+            'string', 'image', 'file', 'video' => 'string',
             'text' => 'text',
             'integer' => 'integer',
             'bigint' => 'bigInteger',
@@ -151,18 +151,18 @@ class FieldParser
     /** @return array<int, array<string, mixed>> */
     public function getFileFields(): array
     {
-        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']));
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file', 'video']));
     }
 
     /** @return array<int, array<string, mixed>> */
     public function getSingleFileFields(): array
     {
-        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']) && ! $f['multiple']);
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file', 'video']) && ! $f['multiple']);
     }
 
     /** @return array<int, array<string, mixed>> */
     public function getMultipleFileFields(): array
     {
-        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file']) && $f['multiple']);
+        return array_filter($this->fields, fn ($f) => in_array($f['type'], ['image', 'file', 'video']) && $f['multiple']);
     }
 }

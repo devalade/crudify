@@ -79,13 +79,13 @@ it('returns correct migration types', function () {
     expect($parser->getMigrationType('foreign'))->toBe('foreignId');
 });
 
-it('parses image and file fields', function () {
+it('parses image, file, and video fields', function () {
     $parser = new FieldParser;
-    $parser->parse('photo:image|attachment:file|gallery:image:multiple|docs:file:multiple');
+    $parser->parse('photo:image|attachment:file|clip:video|gallery:image:multiple|docs:file:multiple|trailers:video:multiple');
 
     $fields = $parser->getFields();
 
-    expect($fields)->toHaveCount(4);
+    expect($fields)->toHaveCount(6);
     expect($fields[0])->toBe([
         'name' => 'photo',
         'type' => 'image',
@@ -97,26 +97,34 @@ it('parses image and file fields', function () {
         'multiple' => false,
     ]);
     expect($fields[1]['type'])->toBe('file');
-    expect($fields[2]['multiple'])->toBeTrue();
-    expect($fields[2]['type'])->toBe('image');
+    expect($fields[2]['type'])->toBe('video');
     expect($fields[3]['multiple'])->toBeTrue();
-    expect($fields[3]['type'])->toBe('file');
+    expect($fields[3]['type'])->toBe('image');
+    expect($fields[4]['multiple'])->toBeTrue();
+    expect($fields[4]['type'])->toBe('file');
+    expect($fields[5]['multiple'])->toBeTrue();
+    expect($fields[5]['type'])->toBe('video');
 });
 
-it('returns correct migration types for image and file fields', function () {
+it('returns correct migration types for image, file, and video fields', function () {
     $parser = new FieldParser;
 
     expect($parser->getMigrationType('image'))->toBe('string');
     expect($parser->getMigrationType('file'))->toBe('string');
+    expect($parser->getMigrationType('video'))->toBe('string');
     expect($parser->getMigrationType('image', true))->toBe('json');
     expect($parser->getMigrationType('file', true))->toBe('json');
+    expect($parser->getMigrationType('video', true))->toBe('json');
 });
 
-it('returns correct casts for multiple file fields', function () {
+it('returns correct casts for multiple media fields', function () {
     $parser = new FieldParser;
-    $parser->parse('gallery:image:multiple');
+    $parser->parse('gallery:image:multiple|trailers:video:multiple');
 
-    expect($parser->getCasts())->toBe(['gallery' => 'array']);
+    expect($parser->getCasts())->toBe([
+        'gallery' => 'array',
+        'trailers' => 'array',
+    ]);
 });
 
 it('ignores empty field names', function () {
