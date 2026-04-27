@@ -46,7 +46,34 @@ class LivewireComponentGenerator extends BaseGenerator
             ->map(fn ($field) => "'{$field}'")
             ->implode(', ');
 
+        $searchPlaceholder = $searchables->isEmpty() 
+            ? 'Search...' 
+            : 'Search ' . $searchables->map(fn($f) => str_replace('_', ' ', $f['name']))->implode(', ') . '...';
+
+        $firstSearchable = $searchables->first();
+        $firstSearchableField = $firstSearchable ? $firstSearchable['name'] : '';
+
+        $inlineSuggestionMethod = $firstSearchableField ? "
+    #[\\Livewire\\Attributes\\Computed]
+    public function inlineSuggestion(): string
+    {
+        if (empty(\$this->search)) {
+            return '';
+        }
+
+        \$suggestion = \\App\\Models\\{$modelBase}::query()
+            ->where('{$firstSearchableField}', 'like', \$this->search . '%')
+            ->value('{$firstSearchableField}');
+
+        if (\$suggestion && str_starts_with(strtolower(\$suggestion), strtolower(\$this->search))) {
+            return substr(\$suggestion, strlen(\$this->search));
+        }
+
+        return '';
+    }" : '';
+
         $searchablesProps = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
+        $searchablesProps .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n" . $inlineSuggestionMethod;
 
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 

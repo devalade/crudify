@@ -31,7 +31,33 @@ class VoltLivewireGenerator extends BaseGenerator
         $fields = $this->fieldParser->getFields();
 
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
+        $searchPlaceholder = $searchables->isEmpty() 
+            ? 'Search...' 
+            : 'Search ' . $searchables->map(fn($f) => str_replace('_', ' ', $f['name']))->implode(', ') . '...';
+        $firstSearchable = $searchables->first();
+        $firstSearchableField = $firstSearchable ? $firstSearchable['name'] : '';
+
+        $inlineSuggestionMethod = $firstSearchableField ? "
+    #[\\Livewire\\Attributes\\Computed]
+    public function inlineSuggestion(): string
+    {
+        if (empty(\$this->search)) {
+            return '';
+        }
+
+        \$suggestion = \\App\\Models\\{$modelBase}::query()
+            ->where('{$firstSearchableField}', 'like', \$this->search . '%')
+            ->value('{$firstSearchableField}');
+
+        if (\$suggestion && str_starts_with(strtolower(\$suggestion), strtolower(\$this->search))) {
+            return substr(\$suggestion, strlen(\$this->search));
+        }
+
+        return '';
+    }" : '';
+
         $searchProperties = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
+        $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n" . $inlineSuggestionMethod;
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
@@ -94,6 +120,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $stub = str_replace('{{ models }}', $models, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
         $stub = str_replace('{{ searchables }}', $searchProperties, $stub);
+
         $stub = str_replace('{{ sortableFields }}', "[{$sortableFields}]", $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search', $stub);
         $stub = str_replace('{{ with }}', $with ?: '', $stub);

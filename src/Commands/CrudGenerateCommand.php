@@ -58,9 +58,11 @@ class CrudGenerateCommand extends Command
         }
 
         if (empty($model)) {
-            $this->error('Model name is required.');
-
-            return self::FAILURE;
+            $model = \Laravel\Prompts\text(
+                label: 'What is the model name?',
+                placeholder: 'e.g. Post',
+                required: true
+            );
         }
 
         $model = trim($model);
@@ -70,18 +72,27 @@ class CrudGenerateCommand extends Command
         }
 
         if (empty($fieldsString)) {
-            $this->error('Either --fields or --file option is required.');
-            $this->info('Examples:');
-            $this->info('  --fields="title:string|body:text|is_published:boolean"');
-            $this->info('  --file=crud.yaml');
-
-            return self::FAILURE;
+            $fieldsString = \Laravel\Prompts\text(
+                label: 'Define your fields',
+                placeholder: 'e.g. title:string|body:text|is_published:boolean',
+                required: true,
+                hint: 'Separate fields with a pipe (|)'
+            );
         }
 
         $fieldParser = new FieldParser;
         $fieldParser->parse($fieldsString);
 
         $relationshipsString = is_string($this->option('relationships')) ? $this->option('relationships') : '';
+        
+        if (empty($relationshipsString)) {
+            $relationshipsString = \Laravel\Prompts\text(
+                label: 'Define relationships (optional)',
+                placeholder: 'e.g. comments:hasMany:Comment|tags:belongsToMany:Tag',
+                hint: 'Press enter to skip'
+            ) ?? '';
+        }
+
         $relationshipParser = new RelationshipParser;
 
         if ($relationshipsString !== '') {

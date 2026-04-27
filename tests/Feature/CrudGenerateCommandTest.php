@@ -34,6 +34,7 @@ afterEach(function () {
 
 it('validates model name is required', function () {
     $this->artisan('crudify:generate')
+        ->expectsQuestion('What is the model name?', '')
         ->assertFailed();
 });
 
@@ -44,11 +45,13 @@ it('validates model name is not a reserved keyword', function () {
 
 it('requires fields or file option', function () {
     $this->artisan('crudify:generate Post')
+        ->expectsQuestion('Define your fields', '')
         ->assertFailed();
 });
 
 it('generates volt files by default', function () {
     $this->artisan('crudify:generate Post --fields=title:string|body:text')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -68,6 +71,7 @@ it('generates volt files by default', function () {
 
 it('generates classic livewire files when --livewire is used', function () {
     $this->artisan('crudify:generate Post --fields=title:string|body:text --livewire')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeTrue();
@@ -86,6 +90,7 @@ it('generates classic livewire files when --livewire is used', function () {
 
 it('respects --only option', function () {
     $this->artisan('crudify:generate Post --fields=title:string --only=model|migration')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -107,6 +112,7 @@ it('accepts pipe and semicolon separators in cli options', function () {
 
 it('respects --skip option', function () {
     $this->artisan('crudify:generate Post --fields=title:string --skip=controller --livewire')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeTrue();
@@ -117,6 +123,7 @@ it('respects --force option', function () {
     file_put_contents(base_path('app/Models/Post.php'), '<?php // existing');
 
     $this->artisan('crudify:generate Post --fields=title:string --force')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     $content = file_get_contents(base_path('app/Models/Post.php'));
@@ -127,11 +134,13 @@ it('fails without --force when file exists', function () {
     file_put_contents(base_path('app/Models/Post.php'), '<?php // existing');
 
     $this->artisan('crudify:generate Post --fields=title:string')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertFailed();
 });
 
 it('respects --dry-run option', function () {
     $this->artisan('crudify:generate Post --fields=title:string --dry-run')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     expect(file_exists(base_path('app/Models/Post.php')))->toBeFalse();
@@ -139,6 +148,7 @@ it('respects --dry-run option', function () {
 
 it('respects --soft-delete option', function () {
     $this->artisan('crudify:generate Post --fields=title:string --soft-delete --livewire')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     $modelContent = file_get_contents(base_path('app/Models/Post.php'));
@@ -247,6 +257,7 @@ YAML;
 
 it('generates factory and seeder with correct content', function () {
     $this->artisan('crudify:generate Post --fields=title:string|body:text|is_published:boolean')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     $factoryContent = file_get_contents(base_path('database/factories/PostFactory.php'));
@@ -262,6 +273,7 @@ it('generates factory and seeder with correct content', function () {
 
 it('does not accept comma separators in cli field lists', function () {
     $this->artisan('crudify:generate Post --fields=title:string,body:text --only=model|controller --livewire')
+        ->expectsQuestion('Define relationships (optional)', '')
         ->assertSuccessful();
 
     $modelContent = file_get_contents(base_path('app/Models/Post.php'));

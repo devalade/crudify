@@ -9,11 +9,18 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_9rem]">
-        <flux:input
-            type="search"
-            wire:model.live.debounce.300ms="search"
-            placeholder="Search..."
-        />
+        <div class="relative w-full" x-data>
+            <flux:input
+                type="search"
+                wire:model.live.debounce.300ms="search"
+                placeholder="{{ $searchPlaceholder }}"
+                x-on:keydown.tab="if($wire.inlineSuggestion) { $event.preventDefault(); $wire.set('search', $wire.search + $wire.inlineSuggestion) }"
+                x-on:keydown.right="if($wire.inlineSuggestion && $el.selectionStart === $el.value.length) { $event.preventDefault(); $wire.set('search', $wire.search + $wire.inlineSuggestion) }"
+            />
+            <div x-show="$wire.search.length > 0 && $wire.inlineSuggestion.length > 0" class="absolute inset-y-0 left-0 flex items-center pointer-events-none px-3 font-sans text-sm overflow-hidden whitespace-pre z-10 text-zinc-400">
+                <span class="opacity-0" x-text="$wire.search"></span><span class="opacity-50" x-text="$wire.inlineSuggestion"></span>
+            </div>
+        </div>
 
         <flux:select wire:model.live="perPage">
             <option value="10">10 per page</option>

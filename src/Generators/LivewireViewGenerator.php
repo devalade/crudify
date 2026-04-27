@@ -30,6 +30,8 @@ class LivewireViewGenerator extends BaseGenerator
         $path = base_path("resources/views/livewire/pages/{$kebabModels}/index.blade.php");
 
         $fields = $this->fieldParser->getFields();
+        $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
+            
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
         $imageFields = collect($fields)->filter(fn ($f) => in_array($f['type'], ['image', 'file']))->values();
         $hasImage = $imageFields->isNotEmpty();
