@@ -19,6 +19,7 @@ class CrudEjectRoutesCommand extends Command
 
         if (! is_dir($pagesPath)) {
             $this->warn('No pages directory found. Nothing to eject.');
+
             return self::SUCCESS;
         }
 
@@ -72,12 +73,13 @@ class CrudEjectRoutesCommand extends Command
             } else {
                 $routesCode[] = "Route::get('{$fullRoutePath}', \\{$phpComponent}::class)->name('{$routeName}');";
             }
-            
+
             $added = true;
         }
 
         if (! $added) {
             $this->warn('No routes to eject.');
+
             return self::SUCCESS;
         }
 
@@ -89,11 +91,12 @@ class CrudEjectRoutesCommand extends Command
 
         if (str_contains($content, $markerStart)) {
             $this->warn('Routes have already been ejected to routes/web.php. Please remove the existing block to eject again.');
+
             return self::FAILURE;
         }
 
-        $codeBlock = "\n" . $markerStart . "\n" . implode("\n", $routesCode) . "\n" . $markerEnd . "\n";
-        
+        $codeBlock = "\n".$markerStart."\n".implode("\n", $routesCode)."\n".$markerEnd."\n";
+
         File::append($webPath, $codeBlock);
 
         $this->info('Successfully ejected auto-discovered routes to routes/web.php');

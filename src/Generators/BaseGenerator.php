@@ -137,4 +137,26 @@ abstract class BaseGenerator implements Generator
 
         return "->with(['".implode("', '", $names)."'])";
     }
+
+    /** @param  array<string, mixed>  $relationship */
+    protected function getRelationshipLabel(array $relationship, bool $plural = false): string
+    {
+        $label = is_string($relationship['label'] ?? null) && $relationship['label'] !== ''
+            ? $relationship['label']
+            : (is_string($relationship['name'] ?? null) ? $relationship['name'] : 'Relation');
+
+        if ($plural && ! is_string($relationship['label'] ?? null)) {
+            $label = Str::plural($label);
+        }
+
+        return Str::title(str_replace('_', ' ', $label));
+    }
+
+    /** @param  array<string, mixed>  $relationship */
+    protected function getRelationshipDisplayField(array $relationship): string
+    {
+        $display = $relationship['display'] ?? 'name';
+
+        return is_string($display) && $display !== '' ? $display : 'name';
+    }
 }

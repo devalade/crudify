@@ -29,6 +29,7 @@ class RelationshipParser
                 'name' => $parts[0],
                 'type' => $parts[1],
                 'model' => $parts[2],
+                'display' => $parts[3] ?? 'name',
             ];
         }
 

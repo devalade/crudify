@@ -83,6 +83,8 @@ class YamlParser
                 'name' => $name,
                 'type' => $config['type'] ?? 'belongsTo',
                 'model' => $config['model'] ?? 'Model',
+                'display' => $config['display'] ?? 'name',
+                'label' => $config['label'] ?? null,
             ];
         }
 

@@ -40,6 +40,8 @@ relationships:
   tags:
     type: belongsToMany
     model: Tag
+    display: slug
+    label: Topics
 
 searchable:
   - title

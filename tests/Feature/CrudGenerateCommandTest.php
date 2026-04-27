@@ -206,6 +206,22 @@ it('generates belongsToMany support artifacts from cli option', function () {
     expect($indexView)->toContain('<flux:badge size="sm">{{ $item->name ?? $item->id }}</flux:badge>');
 });
 
+it('uses custom relationship display fields in generated views', function () {
+    $this->artisan('crudify:generate Post --fields=title:string --relationships=author:belongsTo:User:email|tags:belongsToMany:Tag:slug --livewire')
+        ->assertSuccessful();
+
+    $indexView = file_get_contents(base_path('resources/views/livewire/pages/posts/index.blade.php'));
+    $showView = file_get_contents(base_path('resources/views/livewire/pages/posts/show.blade.php'));
+    $createView = file_get_contents(base_path('resources/views/livewire/pages/posts/create.blade.php'));
+
+    expect($indexView)->toContain('{{ $post->author->email ?? $post->author->id }}');
+    expect($indexView)->toContain('{{ $item->slug ?? $item->id }}');
+    expect($showView)->toContain('{{ $post->author->email ?? $post->author->id }}');
+    expect($showView)->toContain('{{ $item->slug ?? $item->id }}');
+    expect($createView)->toContain('{{ $option->email ?? $option->id }}');
+    expect($createView)->toContain('label="{{ $option->slug ?? $option->id }}"');
+});
+
 it('handles yaml file with relationships', function () {
     $yaml = <<<'YAML'
 model: Article

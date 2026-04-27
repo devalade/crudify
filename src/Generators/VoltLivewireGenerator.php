@@ -31,9 +31,9 @@ class VoltLivewireGenerator extends BaseGenerator
         $fields = $this->fieldParser->getFields();
 
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
-        $searchPlaceholder = $searchables->isEmpty() 
-            ? 'Search...' 
-            : 'Search ' . $searchables->map(fn($f) => str_replace('_', ' ', $f['name']))->implode(', ') . '...';
+        $searchPlaceholder = $searchables->isEmpty()
+            ? 'Search...'
+            : 'Search '.$searchables->map(fn ($f) => str_replace('_', ' ', $f['name']))->implode(', ').'...';
         $firstSearchable = $searchables->first();
         $firstSearchableField = $firstSearchable ? $firstSearchable['name'] : '';
 
@@ -57,7 +57,7 @@ class VoltLivewireGenerator extends BaseGenerator
     }" : '';
 
         $searchProperties = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
-        $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n" . $inlineSuggestionMethod;
+        $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n".$inlineSuggestionMethod;
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file']))->take(5);
@@ -78,11 +78,11 @@ class VoltLivewireGenerator extends BaseGenerator
         $headers = $displayFields->map(fn ($f) => "<flux:table.column wire:click=\"sortBy('{$f['name']}')\" class=\"cursor-pointer\">".Str::title(str_replace('_', ' ', $f['name']))." @if(\$sortField === '{$f['name']}') @if(\$sortDirection === 'asc') &#9650; @else &#9660; @endif @endif</flux:table.column>")->implode("\n                    ");
 
         foreach ($belongsToRels as $rel) {
-            $headers .= "\n                    <flux:table.column>".Str::title($rel['name']).'</flux:table.column>';
+            $headers .= "\n                    <flux:table.column>".$this->getRelationshipLabel($rel).'</flux:table.column>';
         }
 
         foreach ($belongsToManyRels as $rel) {
-            $headers .= "\n                    <flux:table.column>".Str::title(Str::plural($rel['name'])).'</flux:table.column>';
+            $headers .= "\n                    <flux:table.column>".$this->getRelationshipLabel($rel, true).'</flux:table.column>';
         }
 
         if ($hasImage) {
@@ -97,12 +97,14 @@ class VoltLivewireGenerator extends BaseGenerator
 
         foreach ($belongsToRels as $rel) {
             $name = $rel['name'];
-            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+            $displayField = $this->getRelationshipDisplayField($rel);
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name})\n                                    {{ \${$modelVar}->{$name}->{$displayField} ?? \${$modelVar}->{$name}->id }}\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
         }
 
         foreach ($belongsToManyRels as $rel) {
             $name = Str::plural($rel['name']);
-            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name}->isNotEmpty())\n                                    <div class=\"flex flex-wrap gap-2\">\n                                        @foreach(\${$modelVar}->{$name} as \$item)\n                                            <flux:badge size=\"sm\">{{ \$item->name ?? \$item->id }}</flux:badge>\n                                        @endforeach\n                                    </div>\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
+            $displayField = $this->getRelationshipDisplayField($rel);
+            $rowContent .= "\n                            <flux:table.cell>\n                                @if(\${$modelVar}->{$name}->isNotEmpty())\n                                    <div class=\"flex flex-wrap gap-2\">\n                                        @foreach(\${$modelVar}->{$name} as \$item)\n                                            <flux:badge size=\"sm\">{{ \$item->{$displayField} ?? \$item->id }}</flux:badge>\n                                        @endforeach\n                                    </div>\n                                @else\n                                    <span class=\"text-zinc-400\">—</span>\n                                @endif\n                            </flux:table.cell>";
         }
 
         if ($hasImage && $firstImage) {
@@ -508,15 +510,16 @@ BLADE;
      */
     protected function generateBelongsToShowField(array $relationship, string $modelVar): string
     {
-        $label = Str::title($relationship['name']);
+        $label = $this->getRelationshipLabel($relationship);
         $name = $relationship['name'];
+        $displayField = $this->getRelationshipDisplayField($relationship);
 
         return <<<BLADE
 <div class="space-y-2">
         <flux:subheading>{$label}</flux:subheading>
         <flux:text>
             @if(\${$modelVar}->{$name})
-                {{ \${$modelVar}->{$name}->name ?? \${$modelVar}->{$name}->id }}
+                {{ \${$modelVar}->{$name}->{$displayField} ?? \${$modelVar}->{$name}->id }}
             @else
                 <span class="text-zinc-400">—</span>
             @endif
@@ -530,8 +533,9 @@ BLADE;
      */
     protected function generateBelongsToManyShowField(array $relationship, string $modelVar): string
     {
-        $label = Str::title(Str::plural($relationship['name']));
+        $label = $this->getRelationshipLabel($relationship, true);
         $name = Str::plural($relationship['name']);
+        $displayField = $this->getRelationshipDisplayField($relationship);
 
         return <<<BLADE
 <div class="space-y-2">
@@ -540,7 +544,7 @@ BLADE;
             @if(\${$modelVar}->{$name}->isNotEmpty())
                 <div class="flex flex-wrap gap-2">
                     @foreach(\${$modelVar}->{$name} as \$item)
-                        <flux:badge>{{ \$item->name ?? \$item->id }}</flux:badge>
+                        <flux:badge>{{ \$item->{$displayField} ?? \$item->id }}</flux:badge>
                     @endforeach
                 </div>
             @else
@@ -556,16 +560,17 @@ BLADE;
      */
     protected function generateRelationshipField(array $relationship): string
     {
-        $label = Str::title(str_replace('_', ' ', $relationship['name']));
+        $label = $this->getRelationshipLabel($relationship);
         $foreignKey = Str::snake($relationship['name']).'_id';
         $relatedVar = $this->camelCase($relationship['model']);
+        $displayField = $this->getRelationshipDisplayField($relationship);
 
         return <<<BLADE
 <div class="space-y-2">
                     <flux:select wire:model="{$foreignKey}" label="{$label}">
                         <option value="">Select {$label}</option>
                         @foreach(\${$relatedVar}Options as \$option)
-                            <option value="{{ \$option->id }}">{{ \$option->name ?? \$option->id }}</option>
+                            <option value="{{ \$option->id }}">{{ \$option->{$displayField} ?? \$option->id }}</option>
                         @endforeach
                     </flux:select>
                     @error('{$foreignKey}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror
@@ -578,9 +583,10 @@ BLADE;
      */
     protected function generateBelongsToManyField(array $relationship): string
     {
-        $label = Str::title(Str::plural($relationship['name']));
+        $label = $this->getRelationshipLabel($relationship, true);
         $propertyName = 'selected'.Str::studly(Str::plural($relationship['name'])).'Ids';
         $optionsVar = Str::camel(Str::plural($relationship['name'])).'Options';
+        $displayField = $this->getRelationshipDisplayField($relationship);
 
         return <<<BLADE
 <div class="space-y-3">
@@ -589,7 +595,7 @@ BLADE;
                     </flux:field>
                     <div class="flex flex-wrap gap-3">
                         @foreach(\${$optionsVar} as \$option)
-                            <flux:checkbox wire:model="{$propertyName}" value="{{ \$option->id }}" label="{{ \$option->name ?? \$option->id }}" />
+                            <flux:checkbox wire:model="{$propertyName}" value="{{ \$option->id }}" label="{{ \$option->{$displayField} ?? \$option->id }}" />
                         @endforeach
                     </div>
                     @error('{$propertyName}') <flux:text class="text-red-500">{{ \$message }}</flux:text> @enderror

@@ -46,9 +46,9 @@ class LivewireComponentGenerator extends BaseGenerator
             ->map(fn ($field) => "'{$field}'")
             ->implode(', ');
 
-        $searchPlaceholder = $searchables->isEmpty() 
-            ? 'Search...' 
-            : 'Search ' . $searchables->map(fn($f) => str_replace('_', ' ', $f['name']))->implode(', ') . '...';
+        $searchPlaceholder = $searchables->isEmpty()
+            ? 'Search...'
+            : 'Search '.$searchables->map(fn ($f) => str_replace('_', ' ', $f['name']))->implode(', ').'...';
 
         $firstSearchable = $searchables->first();
         $firstSearchableField = $firstSearchable ? $firstSearchable['name'] : '';
@@ -73,7 +73,7 @@ class LivewireComponentGenerator extends BaseGenerator
     }" : '';
 
         $searchablesProps = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
-        $searchablesProps .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n" . $inlineSuggestionMethod;
+        $searchablesProps .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n".$inlineSuggestionMethod;
 
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 

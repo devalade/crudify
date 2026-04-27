@@ -113,6 +113,11 @@ Supported relationship types:
 - `hasOne` - generates model method
 - `belongsToMany` - generates model method, checkbox UI, sync on save, and pivot migration
 
+Optional relationship keys:
+
+- `display` - attribute shown in selects, checkbox labels, index badges, and show pages
+- `label` - user-facing label for forms, table headers, and detail sections
+
 ### belongsToMany Example
 
 ```yaml
@@ -126,6 +131,8 @@ relationships:
   tags:
     type: belongsToMany
     model: Tag
+    display: slug
+    label: Topics
 ```
 
 Generated extras:

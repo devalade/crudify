@@ -225,6 +225,8 @@ relationships:
   author:
     type: belongsTo
     model: User
+    display: email
+    label: Author
   comments:
     type: hasMany
     model: Comment
@@ -234,6 +236,8 @@ relationships:
   tags:
     type: belongsToMany
     model: Tag
+    display: slug
+    label: Topics
 ```
 
 ### Supported Types
@@ -249,6 +253,43 @@ Relationships are automatically:
 - Validated in generated forms for classic Livewire mode
 - Displayed in index tables and show views
 - For `belongsToMany`, generates pivot migration and missing related model when needed
+
+### Relationship Display API
+
+Use optional relationship metadata when default `name` field is not right.
+
+**CLI**
+```bash
+php artisan crudify:generate Post \
+  --fields="title:string" \
+  --relationships="author:belongsTo:User:email|tags:belongsToMany:Tag:slug"
+```
+
+CLI format:
+```text
+name:type:model[:display]
+```
+
+**YAML**
+```yaml
+relationships:
+  author:
+    type: belongsTo
+    model: User
+    display: email
+    label: Author
+
+  tags:
+    type: belongsToMany
+    model: Tag
+    display: slug
+    label: Topics
+```
+
+Behavior:
+- `display` chooses field used in selects, checkbox labels, index badges, and show pages
+- `label` overrides section/table/form label shown to end users
+- `belongsToMany` appears in create/edit as checkboxes and in index/show as badges by default
 
 ### belongsToMany Example
 
@@ -266,6 +307,8 @@ relationships:
   tags:
     type: belongsToMany
     model: Tag
+    display: slug
+    label: Topics
 ```
 
 Run:

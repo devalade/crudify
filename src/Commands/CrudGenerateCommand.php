@@ -85,7 +85,7 @@ class CrudGenerateCommand extends Command
 
         $relationshipsOption = $this->option('relationships');
         $relationshipsString = is_string($relationshipsOption) ? $relationshipsOption : '';
-        
+
         if (empty($relationshipsString)) {
             $relationshipsString = \Laravel\Prompts\text(
                 label: 'Define relationships (optional)',
@@ -320,7 +320,7 @@ class CrudGenerateCommand extends Command
         }
         $pluralName = Str::plural(class_basename($model));
         $route = $volt ? "/{$resource}" : "{{ route('{$resource}.index') }}";
-        
+
         $linkStr = "<!-- Navbar link for easy navigation -->\n    <!-- <flux:navbar.item href=\"{$route}\">{$pluralName}</flux:navbar.item> -->";
 
         if (str_contains($content, ">{$pluralName}</flux:navbar.item>")) {
@@ -330,7 +330,7 @@ class CrudGenerateCommand extends Command
         if (str_contains($content, '{{ $slot }}')) {
             $content = str_replace('{{ $slot }}', "{$linkStr}\n    {{ \$slot }}", $content);
             file_put_contents($layoutPath, $content);
-            $this->info("  ✓ Added commented link to layout");
+            $this->info('  ✓ Added commented link to layout');
         }
     }
 }

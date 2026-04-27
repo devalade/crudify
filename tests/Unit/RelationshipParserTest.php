@@ -13,11 +13,13 @@ it('parses relationship string', function () {
         'name' => 'user',
         'type' => 'belongsTo',
         'model' => 'User',
+        'display' => 'name',
     ]);
     expect($relationships[1])->toBe([
         'name' => 'comments',
         'type' => 'hasMany',
         'model' => 'Comment',
+        'display' => 'name',
     ]);
 });
 
@@ -55,6 +57,15 @@ it('supports hasOne and belongsToMany types', function () {
 
     expect($relationships[0]['type'])->toBe('hasOne');
     expect($relationships[1]['type'])->toBe('belongsToMany');
+});
+
+it('parses optional relationship display field', function () {
+    $parser = new RelationshipParser;
+    $parser->parse('tags:belongsToMany:Tag:slug');
+
+    $relationships = $parser->getRelationships();
+
+    expect($relationships[0]['display'])->toBe('slug');
 });
 
 it('supports pipe and semicolon relationship separators', function () {
