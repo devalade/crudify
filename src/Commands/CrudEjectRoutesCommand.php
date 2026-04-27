@@ -1,56 +1,25 @@
 <?php
 
-namespace Crudify;
+namespace Crudify\Commands;
 
-use Crudify\Commands\CrudEjectRoutesCommand;
-use Crudify\Commands\CrudGenerateCommand;
-use Crudify\Commands\CrudInstallCommand;
-use Crudify\Commands\CrudSetupCommand;
-use Crudify\Commands\CrudStubsCommand;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Symfony\Component\Finder\Finder;
 
-class CrudifyServiceProvider extends ServiceProvider
+class CrudEjectRoutesCommand extends Command
 {
-    public function register(): void
+    protected $signature = 'crudify:eject-routes';
+
+    protected $description = 'Eject auto-discovered Crudify routes into routes/web.php for manual management';
+
+    public function handle(): int
     {
-        //
-    }
-
-    public function boot(): void
-    {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                CrudGenerateCommand::class,
-                CrudInstallCommand::class,
-                CrudSetupCommand::class,
-                CrudStubsCommand::class,
-                CrudEjectRoutesCommand::class,
-            ]);
-
-            $this->publishes([
-                __DIR__.'/../stubs' => base_path('stubs/crudify'),
-            ], 'crudify-stubs');
-        }
-
-        $this->app->booted(function () {
-            $this->discoverVoltRoutes();
-        });
-    }
-
-    protected function discoverVoltRoutes(): void
-    {
-        $webPath = base_path('routes/web.php');
-        if (file_exists($webPath) && str_contains((string) file_get_contents($webPath), '// CRUDify Ejected Routes')) {
-            return;
-        }
-
         $pagesPath = resource_path('views/pages');
 
         if (! is_dir($pagesPath)) {
-            return;
+            $this->warn('No pages directory found. Nothing to eject.');
+            return self::SUCCESS;
         }
 
         $files = Finder::create()
@@ -58,6 +27,7 @@ class CrudifyServiceProvider extends ServiceProvider
             ->name('*.blade.php')
             ->files();
 
+        $routesCode = [];
         $added = false;
 
         foreach ($files as $file) {
@@ -97,27 +67,39 @@ class CrudifyServiceProvider extends ServiceProvider
                 ? "{$resource}.index"
                 : "{$resource}.{$filename}";
 
-            if (Route::has($routeName)) {
-                continue;
-            }
-
             if ($isSfc) {
-                if (! Route::hasMacro('livewire')) {
-                    continue;
-                }
-                // @phpstan-ignore-next-line livewire() is provided by livewire/volt package when installed
-                Route::livewire($fullRoutePath, $sfcComponent)->name($routeName)->middleware('web');
+                $routesCode[] = "Route::livewire('{$fullRoutePath}', '{$sfcComponent}')->name('{$routeName}');";
             } else {
-                Route::get($fullRoutePath, $phpComponent)->name($routeName)->middleware('web');
+                $routesCode[] = "Route::get('{$fullRoutePath}', \\{$phpComponent}::class)->name('{$routeName}');";
             }
+            
             $added = true;
         }
 
-        if ($added) {
-            $this->callAfterResolving('router', function ($router) {
-                $router->getRoutes()->refreshNameLookups();
-            });
+        if (! $added) {
+            $this->warn('No routes to eject.');
+            return self::SUCCESS;
         }
+
+        $webPath = base_path('routes/web.php');
+        $content = File::exists($webPath) ? File::get($webPath) : "<?php\n\nuse Illuminate\Support\Facades\Route;\n\n";
+
+        $markerStart = '// CRUDify Ejected Routes';
+        $markerEnd = '// End CRUDify Ejected Routes';
+
+        if (str_contains($content, $markerStart)) {
+            $this->warn('Routes have already been ejected to routes/web.php. Please remove the existing block to eject again.');
+            return self::FAILURE;
+        }
+
+        $codeBlock = "\n" . $markerStart . "\n" . implode("\n", $routesCode) . "\n" . $markerEnd . "\n";
+        
+        File::append($webPath, $codeBlock);
+
+        $this->info('Successfully ejected auto-discovered routes to routes/web.php');
+        $this->line('Auto-discovery has been completely disabled. You are now in full control of your routes.');
+
+        return self::SUCCESS;
     }
 
     protected function isVoltSfc(string $path): bool
