@@ -51,6 +51,7 @@ class {{ class }} extends Component
     public function delete(int $id): void
     {
         {{ model }}::findOrFail($id)->delete();
+        $this->resetPage();
         session()->flash('success', '{{ model }} deleted successfully.');
     }
 

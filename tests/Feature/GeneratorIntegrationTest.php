@@ -624,13 +624,34 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('public function updatingPerPage(): void');
     expect($indexContent)->toContain('if (! in_array($field, $this->sortable, true)) {');
     expect($indexContent)->toContain('->orderBy($this->getSortField(), $this->getSortDirection())');
+    expect($indexContent)->toContain('$this->resetPage();');
     expect($indexContent)->toContain('$q->orWhere(\'title\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'body\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('$q->orWhere(\'email\', \'like\', \'%\' . $this->search . \'%\')');
     expect($indexContent)->toContain('mx-auto max-w-7xl');
     expect($indexContent)->toContain('px-4 pt-4 pb-8 sm:px-6 lg:px-8');
     expect($indexContent)->toContain('overflow-x-auto');
+    expect($indexContent)->toContain("@if(\$posts->hasPages())");
+    expect($indexContent)->toContain("{{ \$posts->links() }}");
     expect($indexContent)->not->toContain('{{ with }}');
+});
+
+it('resets pagination after delete in generated index components', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $livewireGenerator = new LivewireComponentGenerator(new Filesystem, $parser);
+    $livewirePaths = $livewireGenerator->generate('Post');
+    $livewireIndex = file_get_contents($livewirePaths[0]);
+
+    $voltGenerator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $voltPaths = $voltGenerator->generate('Post');
+    $voltIndex = file_get_contents($voltPaths[0]);
+
+    expect($livewireIndex)->toContain('public function delete(int $id): void');
+    expect($livewireIndex)->toContain('$this->resetPage();');
+    expect($voltIndex)->toContain('public function delete(int $id): void');
+    expect($voltIndex)->toContain('$this->resetPage();');
 });
 
 it('generates volt edit and show redirects using named routes', function () {

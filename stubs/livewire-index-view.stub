@@ -69,5 +69,7 @@
         </div>
     </div>
 
-    {{ ${{ models }}->links() }}
+    @if(${{ models }}->hasPages())
+        {{ ${{ models }}->links() }}
+    @endif
 </div>

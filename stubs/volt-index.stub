@@ -50,6 +50,7 @@ class extends Component
     public function delete(int $id): void
     {
         {{ model }}::findOrFail($id)->delete();
+        $this->resetPage();
         session()->flash('success', '{{ model }} deleted successfully.');
     }
 
@@ -148,5 +149,7 @@ class extends Component
         </div>
     </div>
 
-    {{ ${{ models }}->links() }}
+    @if(${{ models }}->hasPages())
+        {{ ${{ models }}->links() }}
+    @endif
 </div>
