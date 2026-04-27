@@ -85,7 +85,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $stub = str_replace('{{ modelNamespace }}', 'App\\Models', $stub);
         $stub = str_replace('{{ model }}', $modelBase, $stub);
         $stub = str_replace('{{ title }}', $pluralBase, $stub);
-        $stub = str_replace('{{ searchables }}', $searchablesProps ? "\n    {$searchablesProps}\n" : '', $stub);
+        $stub = str_replace('{{ searchables }}', "\n    {$searchablesProps}\n", $stub);
         $stub = str_replace('{{ sortableFields }}', "[{$sortableFields}]", $stub);
         $stub = str_replace('{{ searchConditions }}', $searchConditions ?: '// Add search conditions', $stub);
         $stub = str_replace('{{ with }}', $with ?: '', $stub);

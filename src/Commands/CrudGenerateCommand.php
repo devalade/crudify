@@ -83,14 +83,15 @@ class CrudGenerateCommand extends Command
         $fieldParser = new FieldParser;
         $fieldParser->parse($fieldsString);
 
-        $relationshipsString = is_string($this->option('relationships')) ? $this->option('relationships') : '';
+        $relationshipsOption = $this->option('relationships');
+        $relationshipsString = is_string($relationshipsOption) ? $relationshipsOption : '';
         
         if (empty($relationshipsString)) {
             $relationshipsString = \Laravel\Prompts\text(
                 label: 'Define relationships (optional)',
                 placeholder: 'e.g. comments:hasMany:Comment|tags:belongsToMany:Tag',
                 hint: 'Press enter to skip'
-            ) ?? '';
+            );
         }
 
         $relationshipParser = new RelationshipParser;
@@ -313,6 +314,10 @@ class CrudGenerateCommand extends Command
         }
 
         $content = file_get_contents($layoutPath);
+
+        if ($content === false) {
+            return;
+        }
         $pluralName = Str::plural(class_basename($model));
         $route = $volt ? "/{$resource}" : "{{ route('{$resource}.index') }}";
         
