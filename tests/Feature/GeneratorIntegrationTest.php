@@ -635,8 +635,8 @@ it('generates volt index with search and pagination', function () {
     expect($indexContent)->toContain('mx-auto max-w-7xl');
     expect($indexContent)->toContain('px-4 pt-4 pb-8 sm:px-6 lg:px-8');
     expect($indexContent)->toContain('overflow-x-auto');
-    expect($indexContent)->toContain("@if(\$posts->hasPages())");
-    expect($indexContent)->toContain("{{ \$posts->links() }}");
+    expect($indexContent)->toContain('@if($posts->hasPages())');
+    expect($indexContent)->toContain('{{ $posts->links() }}');
     expect($indexContent)->not->toContain('{{ with }}');
 });
 
