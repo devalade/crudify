@@ -67,6 +67,12 @@ it('generates volt files by default', function () {
     expect(glob(base_path('database/migrations/*_create_posts_table.php')))->toHaveCount(1);
     expect(file_exists(base_path('database/factories/PostFactory.php')))->toBeTrue();
     expect(file_exists(base_path('database/seeders/PostSeeder.php')))->toBeTrue();
+
+    $indexContent = file_get_contents(base_path('resources/views/pages/posts/index.blade.php'));
+    expect($indexContent)->toContain("public string \$inlineSuggestion = '';");
+    expect($indexContent)->toContain('public function updatedSearch(): void');
+    expect($indexContent)->not->toContain('#[\Livewire\Attributes\Computed]');
+    expect($indexContent)->not->toContain('public function inlineSuggestion(): string');
 });
 
 it('generates classic livewire files when --livewire is used', function () {

@@ -37,12 +37,13 @@ class VoltLivewireGenerator extends BaseGenerator
         $firstSearchable = $searchables->first();
         $firstSearchableField = $firstSearchable ? $firstSearchable['name'] : '';
 
-        $inlineSuggestionMethod = $firstSearchableField ? "
-    #[\\Livewire\\Attributes\\Computed]
-    public function inlineSuggestion(): string
+        $inlineSuggestionUpdater = $firstSearchableField ? "
+    public function updatedSearch(): void
     {
         if (empty(\$this->search)) {
-            return '';
+            \$this->inlineSuggestion = '';
+
+            return;
         }
 
         \$suggestion = \\App\\Models\\{$modelBase}::query()
@@ -50,14 +51,16 @@ class VoltLivewireGenerator extends BaseGenerator
             ->value('{$firstSearchableField}');
 
         if (\$suggestion && str_starts_with(strtolower(\$suggestion), strtolower(\$this->search))) {
-            return substr(\$suggestion, strlen(\$this->search));
+            \$this->inlineSuggestion = substr(\$suggestion, strlen(\$this->search));
+
+            return;
         }
 
-        return '';
+        \$this->inlineSuggestion = '';
     }" : '';
 
         $searchProperties = $searchables->map(fn ($f) => "public string \${$f['name']} = '';")->implode("\n    ");
-        $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n".$inlineSuggestionMethod;
+        $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n    public string \$inlineSuggestion = '';\n".$inlineSuggestionUpdater;
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
         $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || $this->isMediaField($f))->take(5);

@@ -109,6 +109,10 @@ it('generates livewire components in correct location', function () {
     expect($indexContent)->toContain('if (! in_array($field, $this->sortable, true)) {');
     expect($indexContent)->toContain('$this->resetPage();');
     expect($indexContent)->toContain('->orderBy($this->getSortField(), $this->getSortDirection())');
+    expect($indexContent)->toContain("public string \$inlineSuggestion = '';");
+    expect($indexContent)->toContain('public function updatedSearch(): void');
+    expect($indexContent)->not->toContain('#[\Livewire\Attributes\Computed]');
+    expect($indexContent)->not->toContain('public function inlineSuggestion(): string');
 });
 
 it('generates livewire views without calling route at generation time', function () {
