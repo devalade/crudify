@@ -250,7 +250,7 @@ it('uses the related model table when creating belongsTo foreign keys', function
     $content = file_get_contents($paths[0]);
 
     expect($content)->toContain("\$table->foreignId('author_id')->constrained('users')->cascadeOnDelete();");
-    expect($content)->not->toContain("constrained()->cascadeOnDelete()");
+    expect($content)->not->toContain('constrained()->cascadeOnDelete()');
 });
 
 it('generates livewire v4 compatible routes', function () {
