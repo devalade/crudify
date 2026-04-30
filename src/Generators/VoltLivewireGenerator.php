@@ -428,6 +428,9 @@ class VoltLivewireGenerator extends BaseGenerator
 
                 $input = match ($f['type']) {
                     'boolean' => '<flux:checkbox wire:model="'.$f['name'].'" label="'.$label.'" />',
+                    'date' => '<flux:input type="date" wire:model="'.$f['name'].'" label="'.$label.'" />',
+                    'datetime', 'timestamp' => '<flux:input type="datetime-local" wire:model="'.$f['name'].'" label="'.$label.'" />',
+                    'time' => '<flux:input type="time" wire:model="'.$f['name'].'" label="'.$label.'" />',
                     'text' => '<flux:textarea wire:model="'.$f['name'].'" label="'.$label.'" rows="4"></flux:textarea>',
                     default => '<flux:input type="text" wire:model="'.$f['name'].'" label="'.$label.'" />',
                 };

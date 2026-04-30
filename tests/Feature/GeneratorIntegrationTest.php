@@ -645,6 +645,24 @@ it('generates volt create with file upload support', function () {
     expect($createContent)->not->toContain('{{ properties }}');
 });
 
+it('generates volt date and time form inputs', function () {
+    $parser = new FieldParser;
+    $parser->parse('publish_on:date|published_at:datetime|starts_at:time');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain('type="date" wire:model="publish_on"');
+    expect($createContent)->toContain('type="datetime-local" wire:model="published_at"');
+    expect($createContent)->toContain('type="time" wire:model="starts_at"');
+    expect($editContent)->toContain('type="date" wire:model="publish_on"');
+    expect($editContent)->toContain('type="datetime-local" wire:model="published_at"');
+    expect($editContent)->toContain('type="time" wire:model="starts_at"');
+});
+
 it('generates volt edit with file deletion and removal methods', function () {
     $parser = new FieldParser;
     $parser->parse('title:string|gallery:image:multiple|docs:file:multiple');
