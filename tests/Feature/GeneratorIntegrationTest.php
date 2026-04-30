@@ -72,7 +72,7 @@ it('generates a valid controller', function () {
 
 it('generates valid form requests with correct unique rules', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string:unique,email:string:unique:nullable');
+    $parser->parse('title:string:unique|email:string:unique:nullable');
 
     $generator = new FormRequestGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -294,6 +294,21 @@ it('generates model with relationship methods', function () {
     expect($content)->toContain('return $this->hasMany(\App\Models\Comment::class);');
 });
 
+it('generates belongsTo relationship methods with custom foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|user_id:foreign:users');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('author:belongsTo:User:email:user_id');
+
+    $generator = new ModelGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+
+    expect($content)->toContain("return \$this->belongsTo(\\App\\Models\\User::class, 'user_id');");
+});
+
 it('generates controller with eager loading when relationships exist', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');
@@ -403,6 +418,20 @@ it('generates a factory with faker methods mapped to field types', function () {
     expect($content)->toContain('protected $model = Post::class;');
 });
 
+it('generates unique faker values for unique factory fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string:unique|slug:string:unique|email:email:unique');
+
+    $generator = new FactoryGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+
+    expect($content)->toContain("'title' => fake()->unique()->bothify('????-????-####'),");
+    expect($content)->toContain("'slug' => fake()->unique()->slug(3),");
+    expect($content)->toContain("'email' => fake()->unique()->safeEmail(),");
+});
+
 it('generates factory with related factory for foreign keys', function () {
     $parser = new FieldParser;
     $parser->parse('user_id:foreign:users');
@@ -455,8 +484,35 @@ it('generates livewire edit component with file deletion logic', function () {
 
     $editContent = file_get_contents($paths[2]);
 
+    expect($editContent)->toContain('use Illuminate\Support\Facades\Storage;');
     expect($editContent)->toContain("Storage::disk('public')->delete(\$this->post->photo)");
     expect($editContent)->toContain("Storage::disk('public')->delete(\$this->post->attachment)");
+});
+
+it('generates livewire forms with custom belongsTo foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|user_id:foreign:users');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('author:belongsTo:User:email:user_id');
+
+    $componentGenerator = new LivewireComponentGenerator(new Filesystem, $parser, [], $relParser);
+    $componentPaths = $componentGenerator->generate('Post');
+
+    $viewGenerator = new LivewireViewGenerator(new Filesystem, $parser, ['force' => true], $relParser);
+    $viewPaths = $viewGenerator->generate('Post');
+
+    $createComponent = file_get_contents($componentPaths[1]);
+    $editComponent = file_get_contents($componentPaths[2]);
+    $createView = file_get_contents($viewPaths[1]);
+
+    expect($createComponent)->toContain('public int $user_id;');
+    expect($createComponent)->not->toContain('public int $author_id;');
+    expect($editComponent)->toContain('$this->user_id = $post->user_id;');
+    expect($editComponent)->not->toContain('$this->author_id');
+    expect($createView)->toContain('wire:model="user_id"');
+    expect($createView)->not->toContain('wire:model="author_id"');
+    expect(substr_count($createView, 'wire:model="user_id"'))->toBe(1);
 });
 
 it('generates livewire edit component with multiple file removal methods', function () {
@@ -611,6 +667,19 @@ it('generates volt edit with file deletion and removal methods', function () {
     expect($editContent)->not->toContain('{{ extraMethods }}');
 });
 
+it('generates volt edit storage import for single media fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|photo:image');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $editContent = file_get_contents($paths[2]);
+
+    expect($editContent)->toContain('use Illuminate\Support\Facades\Storage;');
+    expect($editContent)->toContain("Storage::disk('public')->delete(\$this->post->photo)");
+});
+
 it('generates volt create with belongsTo relationship support', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');
@@ -625,6 +694,27 @@ it('generates volt create with belongsTo relationship support', function () {
     expect($createContent)->toContain('public int $user_id = 0;');
     expect($createContent)->toContain('public $userOptions = [];');
     expect($createContent)->toContain('$this->userOptions = \App\Models\User::limit(100)->get();');
+});
+
+it('generates volt forms with custom belongsTo foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|user_id:foreign:users');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('author:belongsTo:User:email:user_id');
+
+    $generator = new VoltLivewireGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $createContent = file_get_contents($paths[1]);
+    $editContent = file_get_contents($paths[2]);
+
+    expect($createContent)->toContain('public int $user_id = 0;');
+    expect($createContent)->not->toContain('public int $author_id');
+    expect($createContent)->toContain('wire:model="user_id"');
+    expect($editContent)->toContain('$this->user_id = $post->user_id;');
+    expect($editContent)->not->toContain('$this->author_id');
+    expect($editContent)->toContain('wire:model="user_id"');
 });
 
 it('generates volt edit with syncRelationships for belongsToMany', function () {

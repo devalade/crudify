@@ -32,7 +32,8 @@ class LivewireViewGenerator extends BaseGenerator
         $fields = $this->fieldParser->getFields();
         $searchables = collect($fields)->filter(fn ($f) => in_array($f['type'], ['string', 'text', 'email']))->take(3);
 
-        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || $this->isMediaField($f))->take(5);
+        $relationshipForeignKeys = $this->relationshipForeignKeys();
+        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $relationshipForeignKeys, true) || $this->isMediaField($f))->take(5);
         $imageFields = collect($fields)->filter(fn ($f) => $this->isMediaField($f))->values();
         $hasImage = $imageFields->isNotEmpty();
         $firstImage = $hasImage ? $imageFields->first() : null;
@@ -102,7 +103,7 @@ class LivewireViewGenerator extends BaseGenerator
 
         $fields = $this->fieldParser->getFields();
         $formFields = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(fn ($f) => $this->generateFormField($f, $modelVar))
             ->implode("\n            ");
 
@@ -138,7 +139,7 @@ class LivewireViewGenerator extends BaseGenerator
 
         $fields = $this->fieldParser->getFields();
         $formFields = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(fn ($f) => $this->generateFormField($f, $modelVar, true))
             ->implode("\n            ");
 
@@ -174,7 +175,7 @@ class LivewireViewGenerator extends BaseGenerator
 
         $fields = $this->fieldParser->getFields();
         $showFields = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(fn ($f) => $this->generateShowField($f, $modelVar))
             ->implode("\n            ");
 
@@ -334,7 +335,7 @@ BLADE;
     protected function generateRelationshipField(array $relationship): string
     {
         $label = $this->getRelationshipLabel($relationship);
-        $foreignKey = Str::snake($relationship['name']).'_id';
+        $foreignKey = $this->relationshipForeignKey($relationship);
         $relatedModel = $relationship['model'];
         $relatedVar = $this->camelCase($relatedModel);
         $displayField = $this->getRelationshipDisplayField($relationship);

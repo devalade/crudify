@@ -4,6 +4,9 @@ namespace Crudify;
 
 class RelationshipParser
 {
+    /** @var array<int, string> */
+    protected const TYPES = ['belongsTo', 'hasMany', 'hasOne', 'belongsToMany'];
+
     /** @var array<int, array<string, mixed>> */
     protected array $relationships = [];
 
@@ -25,6 +28,10 @@ class RelationshipParser
                 continue;
             }
 
+            if (! in_array($parts[1], self::TYPES, true)) {
+                throw new \InvalidArgumentException("Invalid relationship type '{$parts[1]}' for '{$parts[0]}'.");
+            }
+
             $this->relationships[] = [
                 'name' => $parts[0],
                 'type' => $parts[1],
@@ -42,6 +49,15 @@ class RelationshipParser
      */
     public function setRelationships(array $relationships): self
     {
+        foreach ($relationships as $relationship) {
+            $type = $relationship['type'] ?? null;
+            $name = $relationship['name'] ?? 'relationship';
+
+            if (! is_string($type) || ! in_array($type, self::TYPES, true)) {
+                throw new \InvalidArgumentException("Invalid relationship type '{$type}' for '{$name}'.");
+            }
+        }
+
         $this->relationships = $relationships;
 
         return $this;

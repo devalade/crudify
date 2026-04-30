@@ -81,7 +81,13 @@ class CrudGenerateCommand extends Command
         }
 
         $fieldParser = new FieldParser;
-        $fieldParser->parse($fieldsString);
+        try {
+            $fieldParser->parse($fieldsString);
+        } catch (\InvalidArgumentException $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $relationshipsOption = $this->option('relationships');
         $relationshipsString = is_string($relationshipsOption) ? $relationshipsOption : '';
@@ -97,7 +103,13 @@ class CrudGenerateCommand extends Command
         $relationshipParser = new RelationshipParser;
 
         if ($relationshipsString !== '') {
-            $relationshipParser->parse($relationshipsString);
+            try {
+                $relationshipParser->parse($relationshipsString);
+            } catch (\InvalidArgumentException $e) {
+                $this->error($e->getMessage());
+
+                return self::FAILURE;
+            }
         }
 
         $softDeletes = (bool) $this->option('soft-delete');
@@ -133,41 +145,17 @@ class CrudGenerateCommand extends Command
         $this->info("Generating CRUD for: {$model}");
         $this->info("Using YAML definition: {$yamlFile}");
 
-        $fieldParser = new FieldParser;
-        $fields = $yamlParser->getFields();
+        try {
+            $fieldParser = new FieldParser;
+            $fieldParser->setFields($yamlParser->getFields());
 
-        $fieldsString = collect($fields)->map(function ($field) {
-            $isForeign = ($field['type'] ?? null) === 'foreign' && ! empty($field['foreign_table']);
-            $parts = [$isForeign
-                ? $field['name'].':foreign:'.$field['foreign_table']
-                : $field['name'].':'.$field['type']];
+            $relationshipParser = new RelationshipParser;
+            $relationshipParser->setRelationships($yamlParser->getRelationships());
+        } catch (\InvalidArgumentException $e) {
+            $this->error($e->getMessage());
 
-            if ($field['nullable']) {
-                $parts[] = 'nullable';
-            }
-            if ($field['unique']) {
-                $parts[] = 'unique';
-            }
-            if ($field['index']) {
-                $parts[] = 'index';
-            }
-            if ($field['multiple']) {
-                $parts[] = 'multiple';
-            }
-            if ($field['default'] !== null) {
-                $parts[] = 'default:'.$field['default'];
-            }
-            if (! $isForeign && $field['foreign_table']) {
-                $parts[] = 'foreign:'.$field['foreign_table'];
-            }
-
-            return implode(':', $parts);
-        })->implode('|');
-
-        $fieldParser->parse($fieldsString);
-
-        $relationshipParser = new RelationshipParser;
-        $relationshipParser->setRelationships($yamlParser->getRelationships());
+            return self::FAILURE;
+        }
 
         $softDeletes = $yamlParser->hasSoftDeletes();
         $volt = $livewire ? false : $yamlParser->hasVolt();

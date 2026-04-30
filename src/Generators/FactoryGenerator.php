@@ -78,6 +78,10 @@ class FactoryGenerator extends BaseGenerator
     {
         $type = is_string($field['type'] ?? null) ? $field['type'] : 'string';
 
+        if (($field['unique'] ?? false) && ! in_array($type, ['foreign', 'image', 'file', 'video'], true)) {
+            return $this->getUniqueFakerMethod($field, $type);
+        }
+
         if (in_array($type, ['image', 'file', 'video'], true)) {
             $extension = $type === 'video' ? 'mp4' : 'jpg';
 
@@ -101,6 +105,53 @@ class FactoryGenerator extends BaseGenerator
             'uuid' => 'fake()->uuid()',
             'json' => "'[]'",
             'foreign' => $this->getForeignFaker($field),
+            default => 'fake()->word()',
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function getUniqueFakerMethod(array $field, string $type): string
+    {
+        $name = is_string($field['name'] ?? null) ? $field['name'] : '';
+
+        if ($type === 'email') {
+            return 'fake()->unique()->safeEmail()';
+        }
+
+        if ($type === 'uuid') {
+            return 'fake()->unique()->uuid()';
+        }
+
+        if (in_array($type, ['integer', 'bigint'], true)) {
+            return 'fake()->unique()->randomNumber()';
+        }
+
+        if (in_array($type, ['float', 'double', 'decimal'], true)) {
+            return 'fake()->unique()->randomFloat(2, 0, 1000)';
+        }
+
+        if ($name === 'slug' || str_ends_with($name, '_slug')) {
+            return 'fake()->unique()->slug(3)';
+        }
+
+        if ($type === 'string') {
+            return "fake()->unique()->bothify('????-????-####')";
+        }
+
+        return $this->getNonUniqueFakerMethod($type);
+    }
+
+    protected function getNonUniqueFakerMethod(string $type): string
+    {
+        return match ($type) {
+            'text' => 'fake()->paragraph()',
+            'boolean' => 'fake()->boolean()',
+            'date' => 'fake()->date()',
+            'datetime', 'timestamp' => 'fake()->dateTime()',
+            'time' => 'fake()->time()',
+            'json' => "'[]'",
             default => 'fake()->word()',
         };
     }

@@ -146,6 +146,15 @@ abstract class BaseGenerator implements Generator
         return Str::plural(Str::snake($model));
     }
 
+    /** @return array<int, string> */
+    protected function relationshipForeignKeys(): array
+    {
+        return collect($this->getRelationships())
+            ->filter(fn ($relationship) => ($relationship['type'] ?? null) === 'belongsTo')
+            ->map(fn ($relationship) => $this->relationshipForeignKey($relationship))
+            ->all();
+    }
+
     protected function getWithClause(): string
     {
         $relationships = $this->getRelationships();

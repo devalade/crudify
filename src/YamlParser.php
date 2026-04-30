@@ -41,7 +41,11 @@ class YamlParser
 
         foreach ($fields as $name => $config) {
             if (is_string($config)) {
-                $config = ['type' => $config];
+                $fieldParser = new FieldParser;
+                $fieldParser->parse($name.':'.$config);
+                $parsed[] = $fieldParser->getFields()[0];
+
+                continue;
             }
 
             /** @var array<string, mixed> $config */

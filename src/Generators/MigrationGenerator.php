@@ -57,14 +57,17 @@ class MigrationGenerator extends BaseGenerator
                 }
 
                 if ($field['default'] !== null) {
-                    $defaultValue = is_numeric($field['default'])
-                        ? $field['default']
-                        : "'{$field['default']}'";
-                    $column .= "->default({$defaultValue})";
+                    $column .= "->default({$this->formatDefaultValue($field['default'])})";
                 }
 
                 if ($field['type'] === 'foreign') {
-                    $column .= "->constrained('{$field['foreign_table']}')";
+                    $foreignTable = is_string($field['foreign_table'] ?? null) ? $field['foreign_table'] : '';
+
+                    if ($foreignTable === '') {
+                        throw new \RuntimeException("Foreign field '{$field['name']}' must define a foreign table.");
+                    }
+
+                    $column .= "->constrained('{$foreignTable}')";
 
                     if ($field['nullable']) {
                         $column .= '->nullOnDelete()';
@@ -107,6 +110,19 @@ class MigrationGenerator extends BaseGenerator
         }
 
         return $files[0];
+    }
+
+    protected function formatDefaultValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_numeric($value)) {
+            return (string) $value;
+        }
+
+        return "'".str_replace("'", "\\'", (string) $value)."'";
     }
 
     /**

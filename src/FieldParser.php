@@ -4,6 +4,35 @@ namespace Crudify;
 
 class FieldParser
 {
+    /** @var array<int, string> */
+    public const TYPES = [
+        'string',
+        'text',
+        'integer',
+        'bigint',
+        'float',
+        'double',
+        'decimal',
+        'boolean',
+        'date',
+        'datetime',
+        'timestamp',
+        'time',
+        'json',
+        'uuid',
+        'email',
+        'foreign',
+        'image',
+        'file',
+        'video',
+        'array',
+        'object',
+        'collection',
+    ];
+
+    /** @var array<int, string> */
+    protected const MODIFIERS = ['nullable', 'unique', 'index', 'foreign', 'multiple'];
+
     /** @var array<int, array<string, mixed>> */
     protected array $fields = [];
 
@@ -55,6 +84,10 @@ class FieldParser
             ];
 
             foreach ($parts as $part) {
+                if (! in_array($part, self::MODIFIERS, true) && ! in_array($part, self::TYPES, true)) {
+                    throw new \InvalidArgumentException("Invalid field token '{$part}' for '{$name}'.");
+                }
+
                 match ($part) {
                     'nullable' => $field['nullable'] = true,
                     'unique' => $field['unique'] = true,
@@ -64,6 +97,8 @@ class FieldParser
                     default => $field['type'] = $part,
                 };
             }
+
+            $this->validateField($field);
 
             $this->fields[] = $field;
         }
@@ -75,6 +110,20 @@ class FieldParser
     public function getFields(): array
     {
         return $this->fields;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $fields
+     */
+    public function setFields(array $fields): self
+    {
+        foreach ($fields as $field) {
+            $this->validateField($field);
+        }
+
+        $this->fields = $fields;
+
+        return $this;
     }
 
     /** @return array<int, string> */
@@ -141,11 +190,32 @@ class FieldParser
             'datetime' => 'dateTime',
             'timestamp' => 'timestamp',
             'time' => 'time',
-            'json' => 'json',
+            'json', 'array', 'object', 'collection' => 'json',
             'uuid' => 'uuid',
             'foreign' => 'foreignId',
             default => 'string',
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $field
+     */
+    protected function validateField(array $field): void
+    {
+        $name = $field['name'] ?? null;
+        $type = $field['type'] ?? null;
+
+        if (! is_string($name) || $name === '') {
+            throw new \InvalidArgumentException('Field names cannot be empty.');
+        }
+
+        if (! is_string($type) || ! in_array($type, self::TYPES, true)) {
+            throw new \InvalidArgumentException("Invalid field type '{$type}' for '{$name}'.");
+        }
+
+        if ($type === 'foreign' && (! is_string($field['foreign_table'] ?? null) || $field['foreign_table'] === '')) {
+            throw new \InvalidArgumentException("Foreign field '{$name}' must define a foreign table, for example {$name}:foreign:users.");
+        }
     }
 
     /** @return array<int, array<string, mixed>> */

@@ -55,6 +55,20 @@ it('parses nullable foreign key fields', function () {
     expect($fields[0]['nullable'])->toBeTrue();
 });
 
+it('rejects foreign key fields without a table', function () {
+    $parser = new FieldParser;
+
+    expect(fn () => $parser->parse('user_id:foreign'))
+        ->toThrow(InvalidArgumentException::class, "Foreign field 'user_id' must define a foreign table");
+});
+
+it('rejects unknown field tokens', function () {
+    $parser = new FieldParser;
+
+    expect(fn () => $parser->parse('is_published:boolen'))
+        ->toThrow(InvalidArgumentException::class, "Invalid field token 'boolen'");
+});
+
 it('returns correct casts', function () {
     $parser = new FieldParser;
     $parser->parse('is_active:boolean|views:integer|price:float|published_at:datetime|meta:json');
@@ -76,6 +90,7 @@ it('returns correct migration types', function () {
     expect($parser->getMigrationType('string'))->toBe('string');
     expect($parser->getMigrationType('bigint'))->toBe('bigInteger');
     expect($parser->getMigrationType('datetime'))->toBe('dateTime');
+    expect($parser->getMigrationType('array'))->toBe('json');
     expect($parser->getMigrationType('foreign'))->toBe('foreignId');
 });
 
@@ -146,10 +161,9 @@ it('supports pipe and semicolon field separators', function () {
     expect($fields[2]['name'])->toBe('is_published');
 });
 
-it('does not split fields on commas anymore', function () {
+it('rejects comma-separated fields', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string,body:text');
 
-    expect($parser->getFields())->toHaveCount(1);
-    expect($parser->getFields()[0]['name'])->toBe('title');
+    expect(fn () => $parser->parse('title:string,body:text'))
+        ->toThrow(InvalidArgumentException::class);
 });

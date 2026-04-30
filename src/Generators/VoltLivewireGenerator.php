@@ -63,7 +63,7 @@ class VoltLivewireGenerator extends BaseGenerator
         $searchProperties .= "\n    public string \$searchPlaceholder = '{$searchPlaceholder}';\n    public string \$inlineSuggestion = '';\n".$inlineSuggestionUpdater;
         $searchConditions = $searchables->map(fn ($f) => "\$q->orWhere('{$f['name']}', 'like', '%' . \$this->search . '%');")->implode("\n                    ");
 
-        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || $this->isMediaField($f))->take(5);
+        $displayFields = collect($fields)->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true) || $this->isMediaField($f))->take(5);
         $imageFields = collect($fields)->filter(fn ($f) => $this->isMediaField($f))->values();
         $hasImage = $imageFields->isNotEmpty();
         $firstImage = $hasImage ? $imageFields->first() : null;
@@ -152,7 +152,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $belongsToProps = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \${$r['name']}_id = 0;")
+            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int $".$this->relationshipForeignKey($r).' = 0;')
             ->implode("\n    ");
         $belongsToOpts = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
@@ -169,7 +169,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->implode("\n    ");
 
         $properties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, false);
                 if ($this->isMediaField($f)) {
@@ -243,7 +243,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $belongsToProps = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \${$r['name']}_id = 0;")
+            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int $".$this->relationshipForeignKey($r).' = 0;')
             ->implode("\n    ");
         $belongsToOpts = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
@@ -259,7 +259,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->implode("\n    ");
 
         $properties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, true);
                 if ($this->isMediaField($f)) {
@@ -278,7 +278,7 @@ class VoltLivewireGenerator extends BaseGenerator
 
         $fillBelongsToProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => '$this->'.Str::snake($r['name'])."_id = \${$modelVar}->".Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => '$this->'.$this->relationshipForeignKey($r)." = \${$modelVar}->".$this->relationshipForeignKey($r).';')
             ->implode("\n    ");
         $fillBelongsToManyProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsToMany')
@@ -296,7 +296,7 @@ class VoltLivewireGenerator extends BaseGenerator
             ->implode("\n    ");
 
         $fillProperties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) use ($modelVar) {
                 if ($this->isMediaField($f)) {
                     return '// File fields are not pre-filled for security';
@@ -317,9 +317,7 @@ class VoltLivewireGenerator extends BaseGenerator
         if ($hasFiles) {
             $uses[] = 'use Livewire\WithFileUploads;';
             $traits[] = 'use WithFileUploads;';
-            if ($this->fieldParser->getMultipleFileFields()) {
-                $uses[] = 'use Illuminate\Support\Facades\Storage;';
-            }
+            $uses[] = 'use Illuminate\Support\Facades\Storage;';
         }
         $usesStr = implode("\n", $uses);
         $traitsStr = implode("\n    ", $traits);
@@ -572,7 +570,7 @@ BLADE;
     protected function generateRelationshipField(array $relationship): string
     {
         $label = $this->getRelationshipLabel($relationship);
-        $foreignKey = Str::snake($relationship['name']).'_id';
+        $foreignKey = $this->relationshipForeignKey($relationship);
         $relatedVar = $this->camelCase($relationship['model']);
         $displayField = $this->getRelationshipDisplayField($relationship);
 

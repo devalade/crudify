@@ -188,6 +188,34 @@ YAML;
     expect($content)->toContain("'body'");
 });
 
+it('preserves yaml boolean field types and defaults', function () {
+    $yaml = <<<'YAML'
+model: Post
+fields:
+  title:
+    type: string
+    unique: true
+  is_published:
+    type: boolean
+    default: false
+YAML;
+
+    $yamlPath = $this->tmpDir.'/post.yaml';
+    file_put_contents($yamlPath, $yaml);
+
+    $this->artisan('crudify:generate', ['--file' => $yamlPath, '--only' => 'migration;factory'])
+        ->assertSuccessful();
+
+    $migration = collect(glob(base_path('database/migrations/*_create_posts_table.php')))->first();
+    $migrationContent = file_get_contents($migration);
+    $factoryContent = file_get_contents(base_path('database/factories/PostFactory.php'));
+
+    expect($migrationContent)->toContain("\$table->boolean('is_published')->default(false);");
+    expect($migrationContent)->not->toContain("\$table->string('is_published')");
+    expect($factoryContent)->toContain("'title' => fake()->unique()->bothify('????-????-####'),");
+    expect($factoryContent)->toContain("'is_published' => fake()->boolean(),");
+});
+
 it('generates model with relationships via cli option', function () {
     $this->artisan('crudify:generate Post --fields=title:string|user_id:foreign:users --relationships=user:belongsTo:User')
         ->assertSuccessful();
@@ -302,13 +330,11 @@ it('generates factory and seeder with correct content', function () {
 
 it('does not accept comma separators in cli field lists', function () {
     $this->artisan('crudify:generate Post --fields=title:string,body:text --only=model|controller --livewire')
-        ->expectsQuestion('Define relationships (optional)', '')
-        ->assertSuccessful();
+        ->expectsOutputToContain("Invalid field token 'string,body'")
+        ->assertFailed();
 
-    $modelContent = file_get_contents(base_path('app/Models/Post.php'));
-    expect($modelContent)->toContain("'title'");
-    expect($modelContent)->not->toContain("'body'");
-    expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeTrue();
+    expect(file_exists(base_path('app/Models/Post.php')))->toBeFalse();
+    expect(file_exists(base_path('app/Http/Controllers/PostsController.php')))->toBeFalse();
 });
 
 it('respects yaml option to disable volt and generate classic livewire', function () {

@@ -88,11 +88,16 @@ class ModelGenerator extends BaseGenerator
             }
 
             $modelClass = str_contains($model, '\\') ? '\\'.$model : '\\App\\Models\\'.$model;
+            $arguments = "{$modelClass}::class";
+
+            if ($type === 'belongsTo' && is_string($rel['foreign_key'] ?? null) && $rel['foreign_key'] !== '') {
+                $arguments .= ", '{$rel['foreign_key']}'";
+            }
 
             $methods[] = <<<PHP
     public function {$name}(): {$returnType}
     {
-        return \$this->{$type}({$modelClass}::class);
+        return \$this->{$type}({$arguments});
     }
 PHP;
         }

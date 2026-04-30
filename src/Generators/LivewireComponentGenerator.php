@@ -37,7 +37,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $sortableFields = collect(['id'])
             ->merge(
                 collect($fields)
-                    ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['type'], ['image', 'file', 'video']))
+                    ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true) || in_array($f['type'], ['image', 'file', 'video']))
                     ->take(5)
                     ->pluck('name')
             )
@@ -113,7 +113,7 @@ class LivewireComponentGenerator extends BaseGenerator
 
         $belongsToProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int \$".Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => "#[Validate('required|integer')]\n    public int $".$this->relationshipForeignKey($r).';')
             ->implode("\n    ");
 
         $belongsToOptions = collect($this->getRelationships())
@@ -132,7 +132,7 @@ class LivewireComponentGenerator extends BaseGenerator
             ->implode("\n    ");
 
         $properties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, false);
                 if (in_array($f['type'], ['image', 'file', 'video'], true)) {
@@ -209,7 +209,7 @@ class LivewireComponentGenerator extends BaseGenerator
 
         $belongsToProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => "#[Validate('sometimes|integer')]\n    public int \$".Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => "#[Validate('sometimes|integer')]\n    public int $".$this->relationshipForeignKey($r).';')
             ->implode("\n    ");
 
         $belongsToOptions = collect($this->getRelationships())
@@ -228,7 +228,7 @@ class LivewireComponentGenerator extends BaseGenerator
             ->implode("\n    ");
 
         $properties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) {
                 $validate = $this->getValidationAttribute($f, true);
                 if (in_array($f['type'], ['image', 'file', 'video'], true)) {
@@ -259,7 +259,7 @@ class LivewireComponentGenerator extends BaseGenerator
 
         $fillProperties = collect($this->getRelationships())
             ->filter(fn ($r) => $r['type'] === 'belongsTo')
-            ->map(fn ($r) => '$this->'.Str::snake($r['name'])."_id = \${$modelVar}->".Str::snake($r['name']).'_id;')
+            ->map(fn ($r) => '$this->'.$this->relationshipForeignKey($r)." = \${$modelVar}->".$this->relationshipForeignKey($r).';')
             ->implode("\n        ");
 
         $belongsToManyFill = collect($this->getRelationships())
@@ -268,7 +268,7 @@ class LivewireComponentGenerator extends BaseGenerator
             ->implode("\n        ");
 
         $fieldFillProperties = collect($fields)
-            ->reject(fn ($f) => $f['name'] === 'id')
+            ->reject(fn ($f) => $f['name'] === 'id' || in_array($f['name'], $this->relationshipForeignKeys(), true))
             ->map(function ($f) use ($modelVar) {
                 if (in_array($f['type'], ['image', 'file', 'video'], true)) {
                     return '// File fields are not pre-filled for security';
@@ -303,9 +303,7 @@ class LivewireComponentGenerator extends BaseGenerator
         $uses = [];
         if ($hasFiles) {
             $uses[] = 'use Livewire\\WithFileUploads;';
-            if ($this->fieldParser->getMultipleFileFields()) {
-                $uses[] = 'use Illuminate\\Support\\Facades\\Storage;';
-            }
+            $uses[] = 'use Illuminate\\Support\\Facades\\Storage;';
         }
         $usesStr = implode("\n", $uses);
 
