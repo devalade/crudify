@@ -133,6 +133,23 @@ it('generates livewire views without calling route at generation time', function
     expect($indexContent)->not->toContain('Illuminate\Routing\Exceptions\RouteNotFoundException');
 });
 
+it('generates livewire show views with typed scalar rendering', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|is_published:boolean|published_at:datetime|views:integer');
+
+    $generator = new LivewireViewGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $showContent = file_get_contents($paths[3]);
+
+    expect($showContent)->toContain('@if(filled($post->title))');
+    expect($showContent)->toContain('@if($post->is_published)');
+    expect($showContent)->toContain('<flux:badge color="green">Yes</flux:badge>');
+    expect($showContent)->toContain('<flux:badge color="zinc">No</flux:badge>');
+    expect($showContent)->toContain("{{ \$post->published_at->format('Y-m-d H:i') }}");
+    expect($showContent)->toContain('@if(filled($post->views))');
+});
+
 it('generates livewire index view with centered padded layout', function () {
     $parser = new FieldParser;
     $parser->parse('title:string|body:text');
@@ -197,6 +214,31 @@ it('generates migration with soft deletes when enabled', function () {
     expect($content)->toContain('$table->softDeletes();');
 });
 
+it('regenerates an existing migration when force is enabled', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $generator = new MigrationGenerator(new Filesystem, $parser);
+    $paths = $generator->generate('Post');
+
+    $path = $paths[0];
+    $originalContent = file_get_contents($path);
+    expect($originalContent)->toContain("\$table->string('title');");
+    expect($originalContent)->not->toContain("\$table->text('body');");
+
+    $updatedParser = new FieldParser;
+    $updatedParser->parse('title:string|body:text');
+
+    $forceGenerator = new MigrationGenerator(new Filesystem, $updatedParser, ['force' => true]);
+    $forcePaths = $forceGenerator->generate('Post');
+
+    expect($forcePaths[0])->toBe($path);
+
+    $updatedContent = file_get_contents($path);
+    expect($updatedContent)->toContain("\$table->string('title');");
+    expect($updatedContent)->toContain("\$table->text('body');");
+});
+
 it('generates pivot migration for belongsToMany relationships', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');
@@ -217,6 +259,33 @@ it('generates pivot migration for belongsToMany relationships', function () {
     expect($content)->toContain("\$table->foreignIdFor(\\App\\Models\\Post::class)->constrained('posts')->cascadeOnDelete();");
     expect($content)->toContain("\$table->foreignIdFor(\\App\\Models\\Tag::class)->constrained('tags')->cascadeOnDelete();");
     expect($content)->toContain("\$table->primary(['post_id', 'tag_id']);");
+});
+
+it('regenerates an existing pivot migration when force is enabled', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('tags:belongsToMany:Tag');
+
+    $generator = new MigrationGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $pivotPath = collect($paths)->first(fn ($path) => str_contains($path, '_create_post_tag_table.php'));
+    expect($pivotPath)->not->toBeNull();
+
+    file_put_contents($pivotPath, '<?php // stale pivot migration');
+
+    $forceGenerator = new MigrationGenerator(new Filesystem, $parser, ['force' => true], $relParser);
+    $forcePaths = $forceGenerator->generate('Post');
+    $forcePivotPath = collect($forcePaths)->first(fn ($path) => str_contains($path, '_create_post_tag_table.php'));
+
+    expect($forcePivotPath)->toBe($pivotPath);
+
+    $content = file_get_contents($pivotPath);
+    expect($content)->toContain("Schema::create('post_tag'");
+    expect($content)->toContain("\$table->primary(['post_id', 'tag_id']);");
+    expect($content)->not->toContain('stale pivot migration');
 });
 
 it('does not duplicate belongsTo foreign keys already declared as fields', function () {
@@ -593,7 +662,7 @@ it('generates volt livewire components with all placeholders replaced', function
 
 it('generates volt show view with correct details structure', function () {
     $parser = new FieldParser;
-    $parser->parse('title:string|body:text|is_published:boolean');
+    $parser->parse('title:string|body:text|is_published:boolean|published_at:datetime|views:integer');
 
     $generator = new VoltLivewireGenerator(new Filesystem, $parser);
     $paths = $generator->generate('Post');
@@ -603,6 +672,11 @@ it('generates volt show view with correct details structure', function () {
     expect($showContent)->toContain('{{ $post->title }}');
     expect($showContent)->toContain('<flux:subheading>Body</flux:subheading>');
     expect($showContent)->toContain('{{ $post->body }}');
+    expect($showContent)->toContain('@if($post->is_published)');
+    expect($showContent)->toContain('<flux:badge color="green">Yes</flux:badge>');
+    expect($showContent)->toContain('<flux:badge color="zinc">No</flux:badge>');
+    expect($showContent)->toContain("{{ \$post->published_at->format('Y-m-d H:i') }}");
+    expect($showContent)->toContain('@if(filled($post->views))');
     expect($showContent)->not->toContain('{{ details }}');
     expect($showContent)->not->toContain('{{ pluralTitle }}');
 });

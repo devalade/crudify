@@ -13,12 +13,10 @@ class MigrationGenerator extends BaseGenerator
         $paths = [];
 
         $existingMigration = $this->findExistingMigration($table);
-        if ($existingMigration !== null) {
+        if ($existingMigration !== null && ! $this->force) {
             $paths[] = $existingMigration;
         } else {
-            $timestamp = now()->format('Y_m_d_His');
-            $filename = "{$timestamp}_create_{$table}_table.php";
-            $path = database_path("migrations/{$filename}");
+            $path = $existingMigration ?? database_path('migrations/'.now()->format('Y_m_d_His')."_create_{$table}_table.php");
 
             $fields = $this->fieldParser->getFields();
             $columns = [];
@@ -142,7 +140,7 @@ class MigrationGenerator extends BaseGenerator
             $pivotTable = $this->pivotTableName(class_basename($model), $rel['model']);
             $existingMigration = $this->findExistingMigration($pivotTable);
 
-            if ($existingMigration !== null) {
+            if ($existingMigration !== null && ! $this->force) {
                 $pivotPaths[] = $existingMigration;
 
                 continue;
@@ -151,7 +149,7 @@ class MigrationGenerator extends BaseGenerator
             $relatedTable = Str::plural(Str::snake(class_basename($rel['model'])));
             $currentTimestamp = $timestamp->copy()->addSeconds(count($pivotPaths))->format('Y_m_d_His');
             $filename = "{$currentTimestamp}_create_{$pivotTable}_table.php";
-            $path = database_path("migrations/{$filename}");
+            $path = $existingMigration ?? database_path("migrations/{$filename}");
 
             $content = <<<PHP
 <?php

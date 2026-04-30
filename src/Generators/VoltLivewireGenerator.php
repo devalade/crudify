@@ -464,7 +464,48 @@ class VoltLivewireGenerator extends BaseGenerator
             return $this->generateShowFileField($field, $label, $modelVar);
         }
 
-        return '<div class="space-y-2"><flux:subheading>'.$label.'</flux:subheading><flux:text>@if($'.$modelVar.'->'.$name.') {{ $'.$modelVar.'->'.$name.' }} @else <span class="text-zinc-400">—</span> @endif</flux:text></div>';
+        if ($field['type'] === 'boolean') {
+            return <<<BLADE
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        @if(\${$modelVar}->{$name})
+            <flux:badge color="green">Yes</flux:badge>
+        @else
+            <flux:badge color="zinc">No</flux:badge>
+        @endif
+    </div>
+BLADE;
+        }
+
+        if (in_array($field['type'], ['date', 'datetime', 'timestamp'], true)) {
+            $format = $field['type'] === 'date' ? 'Y-m-d' : 'Y-m-d H:i';
+
+            return <<<BLADE
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        <flux:text>
+            @if(\${$modelVar}->{$name})
+                {{ \${$modelVar}->{$name}->format('{$format}') }}
+            @else
+                <span class="text-zinc-400">—</span>
+            @endif
+        </flux:text>
+    </div>
+BLADE;
+        }
+
+        return <<<BLADE
+<div class="space-y-2">
+        <flux:subheading>{$label}</flux:subheading>
+        <flux:text>
+            @if(filled(\${$modelVar}->{$name}))
+                {{ \${$modelVar}->{$name} }}
+            @else
+                <span class="text-zinc-400">—</span>
+            @endif
+        </flux:text>
+    </div>
+BLADE;
     }
 
     /**
