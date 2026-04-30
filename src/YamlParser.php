@@ -85,6 +85,7 @@ class YamlParser
                 'model' => $config['model'] ?? 'Model',
                 'display' => $config['display'] ?? 'name',
                 'label' => $config['label'] ?? null,
+                'foreign_key' => $config['foreign_key'] ?? null,
             ];
         }
 

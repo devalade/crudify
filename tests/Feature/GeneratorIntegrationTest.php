@@ -219,6 +219,40 @@ it('generates pivot migration for belongsToMany relationships', function () {
     expect($content)->toContain("\$table->primary(['post_id', 'tag_id']);");
 });
 
+it('does not duplicate belongsTo foreign keys already declared as fields', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string|user_id:foreign:users|category_id:foreign:categories');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('user:belongsTo:User|category:belongsTo:Category');
+
+    $generator = new MigrationGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+
+    expect(substr_count($content, "\$table->foreignId('user_id')"))->toBe(1);
+    expect(substr_count($content, "\$table->foreignId('category_id')"))->toBe(1);
+    expect($content)->toContain("\$table->foreignId('user_id')->constrained('users');");
+    expect($content)->toContain("\$table->foreignId('category_id')->constrained('categories');");
+});
+
+it('uses the related model table when creating belongsTo foreign keys', function () {
+    $parser = new FieldParser;
+    $parser->parse('title:string');
+
+    $relParser = new RelationshipParser;
+    $relParser->parse('author:belongsTo:User:email');
+
+    $generator = new MigrationGenerator(new Filesystem, $parser, [], $relParser);
+    $paths = $generator->generate('Post');
+
+    $content = file_get_contents($paths[0]);
+
+    expect($content)->toContain("\$table->foreignId('author_id')->constrained('users')->cascadeOnDelete();");
+    expect($content)->not->toContain("constrained()->cascadeOnDelete()");
+});
+
 it('generates livewire v4 compatible routes', function () {
     $parser = new FieldParser;
     $parser->parse('title:string');

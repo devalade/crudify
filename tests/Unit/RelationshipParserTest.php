@@ -14,12 +14,14 @@ it('parses relationship string', function () {
         'type' => 'belongsTo',
         'model' => 'User',
         'display' => 'name',
+        'foreign_key' => null,
     ]);
     expect($relationships[1])->toBe([
         'name' => 'comments',
         'type' => 'hasMany',
         'model' => 'Comment',
         'display' => 'name',
+        'foreign_key' => null,
     ]);
 });
 
@@ -66,6 +68,15 @@ it('parses optional relationship display field', function () {
     $relationships = $parser->getRelationships();
 
     expect($relationships[0]['display'])->toBe('slug');
+});
+
+it('parses optional relationship foreign key', function () {
+    $parser = new RelationshipParser;
+    $parser->parse('author:belongsTo:User:email:user_id');
+
+    $relationships = $parser->getRelationships();
+
+    expect($relationships[0]['foreign_key'])->toBe('user_id');
 });
 
 it('supports pipe and semicolon relationship separators', function () {

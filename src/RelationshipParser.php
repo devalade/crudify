@@ -30,6 +30,7 @@ class RelationshipParser
                 'type' => $parts[1],
                 'model' => $parts[2],
                 'display' => $parts[3] ?? 'name',
+                'foreign_key' => $parts[4] ?? null,
             ];
         }
 

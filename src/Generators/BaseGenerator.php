@@ -115,6 +115,37 @@ abstract class BaseGenerator implements Generator
         return $this->relationshipParser?->getRelationships() ?? [];
     }
 
+    protected function hasField(string $name): bool
+    {
+        foreach ($this->fieldParser->getFields() as $field) {
+            if (($field['name'] ?? null) === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param  array<string, mixed>  $relationship */
+    protected function relationshipForeignKey(array $relationship): string
+    {
+        if (is_string($relationship['foreign_key'] ?? null) && $relationship['foreign_key'] !== '') {
+            return $relationship['foreign_key'];
+        }
+
+        $name = is_string($relationship['name'] ?? null) ? $relationship['name'] : 'relation';
+
+        return Str::snake($name).'_id';
+    }
+
+    /** @param  array<string, mixed>  $relationship */
+    protected function relationshipTable(array $relationship): string
+    {
+        $model = is_string($relationship['model'] ?? null) ? class_basename($relationship['model']) : 'Model';
+
+        return Str::plural(Str::snake($model));
+    }
+
     protected function getWithClause(): string
     {
         $relationships = $this->getRelationships();

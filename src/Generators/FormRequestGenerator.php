@@ -48,8 +48,13 @@ class FormRequestGenerator extends BaseGenerator
 
         foreach ($this->getRelationships() as $rel) {
             if ($rel['type'] === 'belongsTo') {
-                $foreignKey = Str::snake($rel['name']).'_id';
-                $relatedTable = Str::plural(Str::snake($rel['model']));
+                $foreignKey = $this->relationshipForeignKey($rel);
+
+                if ($this->hasField($foreignKey)) {
+                    continue;
+                }
+
+                $relatedTable = $this->relationshipTable($rel);
                 $ruleSet = [$isUpdate ? 'sometimes' : 'required', 'integer', "Rule::exists('{$relatedTable}', 'id')"];
                 $ruleStrings = [];
                 foreach ($ruleSet as $rule) {

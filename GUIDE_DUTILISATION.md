@@ -93,16 +93,17 @@ Il faut donc etre explicite :
 
 Il faut aussi penser aux tables et aux migrations :
 
-- `users` doit deja exister si vous utilisez `user_id`
-- `categories` doit deja exister si vous utilisez `category_id`
+- `users` doit deja exister si vous gardez relation `user`
+- `categories` doit deja exister si vous gardez relation `category`
 - `comments` doit deja exister si vous voulez exploiter la relation `comments`
 - `tags` est plus souple dans cas many-to-many
 
 Point tres important :
 
-- une relation `belongsTo` ne cree pas a elle seule le champ `*_id`
-- si vous voulez lier `Post` a `User`, vous devez declarer `user_id` dans `fields`
-- si vous voulez lier `Post` a `Category`, vous devez declarer `category_id` dans `fields`
+- une relation `belongsTo` peut creer automatiquement le champ `*_id` si ce champ n'est pas declare dans `fields`
+- si le champ existe deja dans `fields`, Crudify garde cette definition et ne le cree pas une deuxieme fois
+- declarez explicitement `user_id` ou `category_id` dans `fields` quand vous voulez controler la table cible, `nullable`, `index`, `default`, etc.
+- si vous utilisez un nom de relation different du modele, par exemple `author` vers `User`, Crudify cree `author_id` et reference la table `users`
 
 Donc, si certains modeles ou certaines tables n'existent pas encore, vous avez deux choix :
 
@@ -147,14 +148,6 @@ fields:
   title:
     type: string
     unique: true
-
-  user_id:
-    type: foreign
-    foreign: users
-
-  category_id:
-    type: foreign
-    foreign: categories
 
   slug:
     type: string
@@ -219,14 +212,66 @@ options:
 Dans cet exemple :
 
 - `title`, `slug`, `excerpt`, `body` sont champs texte du post
-- `user_id` cree la cle etrangere vers `users`
-- `category_id` cree la cle etrangere vers `categories`
 - `featured_image` gere image principale
 - `gallery` gere plusieurs images
 - `is_published` et `published_at` gerent publication
 - `soft_deletes: true` active corbeille Laravel
 
 ### Relations
+
+Dans cet exemple :
+
+- `user` declare la methode Eloquent `user()` et cree automatiquement `user_id`
+- `category` declare la methode Eloquent `category()` et cree automatiquement `category_id`
+- `tags` cree une relation many-to-many, l'interface de selection, et la migration pivot
+- `comments` declare la relation `hasMany`; la cle etrangere est portee par la table `comments`, pas par `posts`
+
+Le plus simple est donc de ne pas repeter `user_id` ou `category_id` dans `fields` si la relation `belongsTo` suffit.
+
+Exemple minimal :
+
+```yaml
+fields:
+  title:
+    type: string
+
+relationships:
+  author:
+    type: belongsTo
+    model: User
+    display: email
+```
+
+Cet exemple cree `author_id` dans la migration de `posts` et reference la table `users`.
+
+Si vous voulez controler la colonne vous-meme, declarez-la dans `fields` :
+
+```yaml
+fields:
+  user_id:
+    type: foreign
+    foreign: users
+    nullable: true
+
+relationships:
+  user:
+    type: belongsTo
+    model: User
+    display: email
+```
+
+Crudify utilisera ce `user_id` existant et ne le creera pas une deuxieme fois.
+
+Si vous voulez utiliser un autre nom de colonne pour une relation :
+
+```yaml
+relationships:
+  author:
+    type: belongsTo
+    model: User
+    display: email
+    foreign_key: user_id
+```
 
 `user` :
 
@@ -379,9 +424,9 @@ Exemples :
 - `body:text`
 - `email:string:unique`
 - `published_at:datetime:nullable`
-- `user_id:foreign:users`
 - `photo:image`
 - `documents:file:multiple`
+- `user_id:foreign:users` si vous voulez declarer explicitement une cle etrangere dans les champs
 
 ### Types de champs supportes
 
@@ -399,13 +444,14 @@ Exemples :
 ### Format CLI des relations
 
 ```text
-nom:type:modele[:display]
+nom:type:modele[:display[:foreign_key]]
 ```
 
 Exemples :
 
 - `user:belongsTo:User:email`
 - `category:belongsTo:Category:name`
+- `author:belongsTo:User:email:user_id`
 - `tags:belongsToMany:Tag:slug`
 - `comments:hasMany:Comment`
 
@@ -420,6 +466,7 @@ Exemples :
 
 - `display` : champ affiche dans select, checkbox, badges et pages detail
 - `label` : libelle visible dans interface
+- `foreign_key` : nom de colonne a utiliser pour une relation `belongsTo` si le nom par defaut `relation_id` ne convient pas
 
 ### Commandes utiles
 

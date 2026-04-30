@@ -252,6 +252,13 @@ YAML;
     $content = file_get_contents(base_path('app/Models/Article.php'));
     expect($content)->toContain('public function author(): \Illuminate\Database\Eloquent\Relations\BelongsTo');
     expect($content)->toContain('public function comments(): \Illuminate\Database\Eloquent\Relations\HasMany');
+
+    $migration = collect(glob(base_path('database/migrations/*_create_articles_table.php')))->first();
+    $migrationContent = file_get_contents($migration);
+
+    expect(substr_count($migrationContent, "\$table->foreignId('author_id')"))->toBe(1);
+    expect($migrationContent)->toContain("\$table->foreignId('author_id')->constrained('users');");
+    expect($migrationContent)->not->toContain("\$table->string('author_id')");
 });
 
 it('handles yaml file with multiple fields after separator change', function () {

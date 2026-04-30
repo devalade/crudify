@@ -137,7 +137,10 @@ class CrudGenerateCommand extends Command
         $fields = $yamlParser->getFields();
 
         $fieldsString = collect($fields)->map(function ($field) {
-            $parts = [$field['name'].':'.$field['type']];
+            $isForeign = ($field['type'] ?? null) === 'foreign' && ! empty($field['foreign_table']);
+            $parts = [$isForeign
+                ? $field['name'].':foreign:'.$field['foreign_table']
+                : $field['name'].':'.$field['type']];
 
             if ($field['nullable']) {
                 $parts[] = 'nullable';
@@ -154,7 +157,7 @@ class CrudGenerateCommand extends Command
             if ($field['default'] !== null) {
                 $parts[] = 'default:'.$field['default'];
             }
-            if ($field['foreign_table']) {
+            if (! $isForeign && $field['foreign_table']) {
                 $parts[] = 'foreign:'.$field['foreign_table'];
             }
 

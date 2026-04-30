@@ -25,8 +25,14 @@ class MigrationGenerator extends BaseGenerator
 
             foreach ($this->getRelationships() as $rel) {
                 if ($rel['type'] === 'belongsTo') {
-                    $foreignKey = Str::snake($rel['name']).'_id';
-                    $columns[] = "\$table->foreignId('{$foreignKey}')->constrained()->cascadeOnDelete();";
+                    $foreignKey = $this->relationshipForeignKey($rel);
+
+                    if ($this->hasField($foreignKey)) {
+                        continue;
+                    }
+
+                    $relatedTable = $this->relationshipTable($rel);
+                    $columns[] = "\$table->foreignId('{$foreignKey}')->constrained('{$relatedTable}')->cascadeOnDelete();";
                 }
             }
 
