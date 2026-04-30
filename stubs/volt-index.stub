@@ -124,7 +124,7 @@ class extends Component
                             {{ rowContent }}
                             <flux:table.cell align="end">
                                 <div class="flex justify-end gap-2">
-                                    <flux:button size="sm" variant="ghost" href="{{ route('{{ routeName }}.show', ${{ modelVar }}) }}">View</flux:button>
+                                    <flux:button size="sm" variant="ghost" href="/{{ routeName }}/{{ ${{ modelVar }}->getKey() }}/show">View</flux:button>
                                     <flux:button size="sm" variant="subtle" href="{{ route('{{ routeName }}.edit', ${{ modelVar }}) }}">Edit</flux:button>
                                     <flux:button
                                         size="sm"
