@@ -16,6 +16,7 @@ use Crudify\Generators\RouteGenerator;
 use Crudify\Generators\SeederGenerator;
 use Crudify\Generators\VoltLivewireGenerator;
 use Crudify\RelationshipParser;
+use Crudify\Support\LayoutResolver;
 use Crudify\YamlParser;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
@@ -204,6 +205,7 @@ class CrudGenerateCommand extends Command
             'force' => $force,
             'dryRun' => $dryRun,
             'softDeletes' => $softDeletes,
+            'layoutView' => (new LayoutResolver($files))->view(),
         ];
 
         if ($volt) {
@@ -274,7 +276,7 @@ class CrudGenerateCommand extends Command
 
         $this->info("\nNext steps:");
         $this->line('  1. Run: php artisan migrate');
-        $this->line('  2. Ensure you have a layout at resources/views/components/layouts/app.blade.php');
+        $this->line('  2. Run: php artisan crudify:setup');
 
         if ($volt) {
             $this->line("  3. Visit: /{$resource}");
@@ -294,11 +296,7 @@ class CrudGenerateCommand extends Command
             return;
         }
 
-        $layoutPath = base_path('resources/views/components/layouts/app.blade.php');
-
-        if (! file_exists($layoutPath)) {
-            $layoutPath = base_path('resources/views/layouts/app.blade.php');
-        }
+        $layoutPath = (new LayoutResolver(new Filesystem))->path();
 
         if (! file_exists($layoutPath)) {
             return;

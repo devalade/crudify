@@ -8,7 +8,7 @@ use {{ modelNamespace }}\{{ model }};
 {{ uses }}
 
 new
-#[Layout('components.layouts.app')]
+#[Layout('{{ layoutView }}')]
 #[Title('Create {{ titleSingular }}')]
 class extends Component
 {

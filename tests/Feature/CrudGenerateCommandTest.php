@@ -75,6 +75,30 @@ it('generates volt files by default', function () {
     expect($indexContent)->not->toContain('public function inlineSuggestion(): string');
 });
 
+it('uses the default component layout view when no application layout exists', function () {
+    $this->artisan('crudify:generate Post --fields=title:string')
+        ->expectsQuestion('Define relationships (optional)', '')
+        ->assertSuccessful();
+
+    $indexContent = file_get_contents(base_path('resources/views/pages/posts/index.blade.php'));
+
+    expect($indexContent)->toContain("#[Layout('components.layouts.app')]");
+});
+
+it('always uses the component layout view for generated volt files', function () {
+    mkdir(base_path('resources/views/layouts'), 0755, true);
+    file_put_contents(base_path('resources/views/layouts/app.blade.php'), '{{ $slot }}');
+
+    $this->artisan('crudify:generate Post --fields=title:string')
+        ->expectsQuestion('Define relationships (optional)', '')
+        ->assertSuccessful();
+
+    $indexContent = file_get_contents(base_path('resources/views/pages/posts/index.blade.php'));
+
+    expect($indexContent)->toContain("#[Layout('components.layouts.app')]");
+    expect($indexContent)->not->toContain("#[Layout('layouts.app')]");
+});
+
 it('generates classic livewire files when --livewire is used', function () {
     $this->artisan('crudify:generate Post --fields=title:string|body:text --livewire')
         ->expectsQuestion('Define relationships (optional)', '')
@@ -92,6 +116,20 @@ it('generates classic livewire files when --livewire is used', function () {
     expect(file_exists(base_path('resources/views/livewire/pages/posts/edit.blade.php')))->toBeTrue();
     expect(file_exists(base_path('resources/views/livewire/pages/posts/show.blade.php')))->toBeTrue();
     expect(file_exists(base_path('resources/views/pages/posts/index.blade.php')))->toBeFalse();
+});
+
+it('always uses the component layout view for generated classic livewire files', function () {
+    mkdir(base_path('resources/views/layouts'), 0755, true);
+    file_put_contents(base_path('resources/views/layouts/app.blade.php'), '{{ $slot }}');
+
+    $this->artisan('crudify:generate Post --fields=title:string --livewire')
+        ->expectsQuestion('Define relationships (optional)', '')
+        ->assertSuccessful();
+
+    $indexContent = file_get_contents(base_path('app/Livewire/Pages/Posts/Index.php'));
+
+    expect($indexContent)->toContain("#[Layout('components.layouts.app')]");
+    expect($indexContent)->not->toContain("#[Layout('layouts.app')]");
 });
 
 it('respects --only option', function () {

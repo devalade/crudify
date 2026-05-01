@@ -2,6 +2,7 @@
 
 namespace Crudify\Commands;
 
+use Crudify\Support\LayoutResolver;
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 
@@ -26,18 +27,23 @@ class CrudSetupCommand extends Command
     {
         $cssPath = resource_path('css/app.css');
         $jsPath = resource_path('js/app.js');
-        $layoutPath = $this->resolveLayoutPath();
+        $layoutResolver = new LayoutResolver($this->files);
+        $layoutOption = is_string($this->option('layout')) ? $this->option('layout') : null;
+        $layoutPath = $layoutResolver->path($layoutOption);
+        $layoutView = $layoutResolver->pathToView($layoutPath);
         $viteConfigPath = $this->resolveViteConfigPath();
+        $overwriteLayout = $this->shouldOverwriteLayout($layoutPath);
 
         $this->ensureCssEntry($cssPath);
         $this->ensureJsEntry($jsPath);
-        $this->ensureLayout($layoutPath);
+        $this->ensureLayout($layoutPath, $overwriteLayout);
         $this->ensureViteConfig($viteConfigPath);
 
         $this->info('Crudify frontend setup complete.');
         $this->line("CSS entry: {$cssPath}");
         $this->line("JS entry: {$jsPath}");
         $this->line("Layout: {$layoutPath}");
+        $this->line("Livewire layout view: {$layoutView}");
         if ($viteConfigPath !== null) {
             $this->line("Vite config: {$viteConfigPath}");
         }
@@ -94,9 +100,9 @@ class CrudSetupCommand extends Command
         $this->putFile($path, "// Crudify Vite entry.\n");
     }
 
-    protected function ensureLayout(string $path): void
+    protected function ensureLayout(string $path, bool $overwrite): void
     {
-        if ($this->shouldOverwrite($path) || ! $this->files->exists($path)) {
+        if ($overwrite || ! $this->files->exists($path)) {
             $this->putFile($path, $this->layoutStub());
 
             return;
@@ -123,26 +129,17 @@ class CrudSetupCommand extends Command
         $this->putFile($path, $content);
     }
 
-    protected function resolveLayoutPath(): string
+    protected function shouldOverwriteLayout(string $path): bool
     {
-        $layout = $this->option('layout');
-
-        if (is_string($layout) && $layout !== '') {
-            return resource_path('views/'.ltrim($layout, '/'));
+        if (! $this->files->exists($path)) {
+            return true;
         }
 
-        $candidates = [
-            resource_path('views/components/layouts/app.blade.php'),
-            resource_path('views/layouts/app.blade.php'),
-        ];
-
-        foreach ($candidates as $candidate) {
-            if ($this->files->exists($candidate)) {
-                return $candidate;
-            }
+        if ((bool) $this->option('force')) {
+            return true;
         }
 
-        return $candidates[0];
+        return $this->confirm("Crudify found an existing layout at {$path}. Do you want to overwrite it?", false);
     }
 
     protected function resolveViteConfigPath(): ?string

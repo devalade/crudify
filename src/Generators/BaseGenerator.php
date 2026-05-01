@@ -21,6 +21,8 @@ abstract class BaseGenerator implements Generator
 
     protected bool $softDeletes = false;
 
+    protected string $layoutView = 'components.layouts.app';
+
     /**
      * @param  array<string, mixed>  $options
      */
@@ -32,6 +34,9 @@ abstract class BaseGenerator implements Generator
         $this->force = $options['force'] ?? false;
         $this->dryRun = $options['dryRun'] ?? false;
         $this->softDeletes = $options['softDeletes'] ?? false;
+        $this->layoutView = is_string($options['layoutView'] ?? null) && $options['layoutView'] !== ''
+            ? $options['layoutView']
+            : 'components.layouts.app';
     }
 
     protected function getStub(string $name): string
@@ -77,6 +82,8 @@ abstract class BaseGenerator implements Generator
 
     protected function createFile(string $path, string $content): void
     {
+        $content = str_replace('{{ layoutView }}', $this->layoutView, $content);
+
         if ($this->dryRun) {
             return;
         }

@@ -9,7 +9,7 @@ use Livewire\Attributes\Validate;
 use {{ modelNamespace }}\{{ model }};
 {{ uses }}
 
-#[Layout('components.layouts.app')]
+#[Layout('{{ layoutView }}')]
 #[Title('{{ title }}')]
 class {{ class }} extends Component
 {

@@ -6,7 +6,7 @@ use Livewire\Attributes\Title;
 use {{ modelNamespace }}\{{ model }};
 
 new
-#[Layout('components.layouts.app')]
+#[Layout('{{ layoutView }}')]
 #[Title('{{ title }}')]
 class extends Component
 {

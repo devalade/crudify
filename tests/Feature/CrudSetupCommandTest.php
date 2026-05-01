@@ -42,7 +42,7 @@ it('creates tailwind entries and default layout when missing', function () {
     expect($layout)->toContain('@fluxScripts');
 });
 
-it('patches existing layout without duplicating directives', function () {
+it('creates the component layout even when a Laravel app layout exists', function () {
     mkdir(resource_path('views/layouts'), 0755, true);
     file_put_contents(resource_path('views/layouts/app.blade.php'), <<<'BLADE'
 <!DOCTYPE html>
@@ -58,15 +58,52 @@ BLADE);
 
     $this->artisan('crudify:setup')
         ->assertSuccessful();
-    $this->artisan('crudify:setup')
-        ->assertSuccessful();
+
+    expect(file_exists(resource_path('views/components/layouts/app.blade.php')))->toBeTrue();
 
     $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
-    expect(substr_count($layout, '@fluxAppearance'))->toBe(1);
-    expect(substr_count($layout, "@vite(['resources/css/app.css', 'resources/js/app.js'])"))->toBe(1);
-    expect(substr_count($layout, '@livewireScripts'))->toBe(1);
-    expect(substr_count($layout, '@fluxScripts'))->toBe(1);
+    expect($layout)->not->toContain('@fluxAppearance');
+    expect($layout)->not->toContain('@livewireScripts');
+});
+
+it('asks before overwriting an existing component layout', function () {
+    mkdir(resource_path('views/components/layouts'), 0755, true);
+    $layoutPath = resource_path('views/components/layouts/app.blade.php');
+    file_put_contents($layoutPath, <<<'BLADE'
+<x-layouts.app>
+    Existing application shell
+</x-layouts.app>
+BLADE);
+
+    $this->artisan('crudify:setup')
+        ->expectsConfirmation("Crudify found an existing layout at {$layoutPath}. Do you want to overwrite it?", 'yes')
+        ->assertSuccessful();
+
+    $layout = file_get_contents($layoutPath);
+
+    expect($layout)->toContain('<!DOCTYPE html>');
+    expect($layout)->toContain('@fluxAppearance');
+    expect($layout)->not->toContain('Existing application shell');
+});
+
+it('keeps an existing component layout when overwrite is declined', function () {
+    mkdir(resource_path('views/components/layouts'), 0755, true);
+    $layoutPath = resource_path('views/components/layouts/app.blade.php');
+    file_put_contents($layoutPath, <<<'BLADE'
+<x-layouts.app>
+    Existing application shell
+</x-layouts.app>
+BLADE);
+
+    $this->artisan('crudify:setup')
+        ->expectsConfirmation("Crudify found an existing layout at {$layoutPath}. Do you want to overwrite it?", 'no')
+        ->assertSuccessful();
+
+    $layout = file_get_contents($layoutPath);
+
+    expect($layout)->toContain('Existing application shell');
+    expect($layout)->toContain('@fluxAppearance');
 });
 
 it('respects custom layout option', function () {
